@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+
+   <groupId>com.vspiewak</groupId>
+   <artifactId>parent</artifactId>
+   <version>0.0.1-SNAPSHOT</version>
+
+   <packaging>pom</packaging>
+
+   <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+      <java.version>25</java.version>
+
+      <spring-boot.version>4.1.0</spring-boot.version>
+      <lombok.version>1.18.46</lombok.version>
+
+      <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+      <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+      <spotless-maven-plugin.version>3.9.0</spotless-maven-plugin.version>
+      <google-java-format.version>1.36.1</google-java-format.version>
+   </properties>
+
+   <!-- the fleet architecture : the parent IMPORTS the bom (no parent-chaining) -->
+   <dependencyManagement>
+      <dependencies>
+         <dependency>
+            <groupId>com.vspiewak</groupId>
+            <artifactId>bom</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+         </dependency>
+      </dependencies>
+   </dependencyManagement>
+
+   <build>
+      <!-- pin every plugin version, once, for the whole fleet -->
+      <pluginManagement>
+
+         <plugins>
+            <plugin>
+               <groupId>org.springframework.boot</groupId>
+               <artifactId>spring-boot-maven-plugin</artifactId>
+               <version>${spring-boot.version}</version>
+            </plugin>
+
+            <plugin>
+               <groupId>org.apache.maven.plugins</groupId>
+               <artifactId>maven-compiler-plugin</artifactId>
+               <version>${maven-compiler-plugin.version}</version>
+               <configuration>
+                  <release>${java.version}</release>
+                  <parameters>true</parameters>
+                  <annotationProcessorPaths>
+                     <path>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                        <version>${lombok.version}</version>
+                     </path>
+                  </annotationProcessorPaths>
+               </configuration>
+            </plugin>
+
+            <plugin>
+               <groupId>com.diffplug.spotless</groupId>
+               <artifactId>spotless-maven-plugin</artifactId>
+               <version>${spotless-maven-plugin.version}</version>
+               <configuration>
+                  <java>
+                     <googleJavaFormat>
+                        <version>${google-java-format.version}</version>
+                     </googleJavaFormat>
+                     <removeUnusedImports />
+                     <formatAnnotations />
+                  </java>
+                  <pom>
+                     <sortPom>
+                        <encoding>UTF-8</encoding>
+                        <nrOfIndentSpace>3</nrOfIndentSpace>
+                        <indentAttribute />
+                        <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+                        <expandEmptyElements>false</expandEmptyElements>
+                        <keepBlankLines>true</keepBlankLines>
+                        <sortDependencies>scope</sortDependencies>
+                        <sortDependencyExclusions>groupId,artifactId</sortDependencyExclusions>
+                     </sortPom>
+                  </pom>
+                  <yaml>
+                     <includes>
+                        <include>src/**/*.yaml</include>
+                        <include>src/**/*.yml</include>
+                     </includes>
+                     <jackson />
+                  </yaml>
+                  <formats>
+                     <format>
+                        <includes>
+                           <include>.gitignore</include>
+                           <include>**/*.md</include>
+                           <include>**/*.properties</include>
+                           <include>**/Dockerfile</include>
+                        </includes>
+                        <trimTrailingWhitespace />
+                        <endWithNewline />
+                        <indent>
+                           <spaces>true</spaces>
+                           <spacesPerTab>2</spacesPerTab>
+                        </indent>
+                     </format>
+                  </formats>
+               </configuration>
+               <executions>
+                  <execution>
+                     <goals>
+                        <goal>check</goal>
+                     </goals>
+                     <phase>compile</phase>
+                  </execution>
+               </executions>
+            </plugin>
+
+            <plugin>
+               <groupId>org.apache.maven.plugins</groupId>
+               <artifactId>maven-checkstyle-plugin</artifactId>
+               <version>${maven-checkstyle-plugin.version}</version>
+               <configuration>
+                  <consoleOutput>true</consoleOutput>
+                  <failOnViolation>true</failOnViolation>
+                  <violationSeverity>warning</violationSeverity>
+                  <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                  <!-- a tiny ruleset -->
+                  <checkstyleRules>
+                     <module name="Checker">
+                        <property name="charset" value="UTF-8" />
+                        <property name="severity" value="warning" />
+                        <module name="TreeWalker">
+                           <module name="EmptyCatchBlock">
+                              <property name="commentFormat" value="This is expected" />
+                           </module>
+                        </module>
+                     </module>
+                  </checkstyleRules>
+               </configuration>
+               <executions>
+                  <execution>
+                     <goals>
+                        <goal>check</goal>
+                     </goals>
+                     <phase>process-classes</phase>
+                  </execution>
+               </executions>
+            </plugin>
+
+         </plugins>
+      </pluginManagement>
+
+      <plugins>
+
+         <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+         </plugin>
+
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+         </plugin>
+
+         <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+         </plugin>
+
+      </plugins>
+   </build>
+
+</project>

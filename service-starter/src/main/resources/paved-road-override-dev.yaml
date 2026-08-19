@@ -1,0 +1,4 @@
+---
+paved-road:
+  database:
+    host: "dev-db.internal"

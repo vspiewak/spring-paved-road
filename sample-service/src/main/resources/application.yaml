@@ -1,0 +1,8 @@
+---
+spring:
+  application:
+    name: "sample-service"
+management:
+  endpoint:
+    env:
+      show-values: "always"

@@ -1,0 +1,3 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+    com.vspiewak.pavedroad.env.SpringDefaultEnvironmentPostProcessor,\
+    com.vspiewak.pavedroad.env.SpringOverrideEnvironmentPostProcessor
