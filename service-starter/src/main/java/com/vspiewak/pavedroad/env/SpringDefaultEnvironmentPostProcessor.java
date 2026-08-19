@@ -10,12 +10,12 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.ClassPathResource;
 
 /**
- * Loads {@code paved-road-default.yaml} with the LOWEST precedence : sane platform defaults that
- * any application property overrides.
+ * Loads {@code platform-default.yaml} with the LOWEST precedence : sane platform defaults that any
+ * application property overrides.
  */
 public class SpringDefaultEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
-  private static final String PROPERTY_SOURCE_NAME = "paved-road-default";
+  private static final String PROPERTY_SOURCE_NAME = "platform-default";
 
   @Override
   public int getOrder() {

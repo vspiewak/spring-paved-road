@@ -38,7 +38,7 @@ class SpringOverrideEnvironmentPostProcessorTest {
 
     postProcessor.postProcessEnvironment(environment, application);
 
-    assertThat(environment.getProperty("paved-road.database.host")).isEqualTo("dev-db.internal");
+    assertThat(environment.getProperty("platform.database.host")).isEqualTo("dev-db.internal");
   }
 
   @Test
@@ -47,7 +47,7 @@ class SpringOverrideEnvironmentPostProcessorTest {
 
     postProcessor.postProcessEnvironment(environment, application);
 
-    assertThat(environment.getProperty("paved-road.database.host")).isNull();
+    assertThat(environment.getProperty("platform.database.host")).isNull();
   }
 
   @Test
@@ -68,6 +68,6 @@ class SpringOverrideEnvironmentPostProcessorTest {
     postProcessor.postProcessEnvironment(environment, application);
 
     assertThat(environment.getProperty("management.endpoint.env.show-values")).isEqualTo("never");
-    assertThat(environment.getProperty("paved-road.database.host")).isEqualTo("dev-db.internal");
+    assertThat(environment.getProperty("platform.database.host")).isEqualTo("dev-db.internal");
   }
 }

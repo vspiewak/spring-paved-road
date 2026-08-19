@@ -12,13 +12,13 @@ import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.io.ClassPathResource;
 
 /**
- * Loads {@code paved-road-override.yaml} then {@code paved-road-override-<profile>.yaml} with the
+ * Loads {@code platform-override.yaml} then {@code platform-override-<profile>.yaml} with the
  * HIGHEST precedence : platform-mandated values no application property can override.
  */
 @Slf4j
 public class SpringOverrideEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
-  private static final String PROPERTY_SOURCE_NAME = "paved-road-override";
+  private static final String PROPERTY_SOURCE_NAME = "platform-override";
 
   @Override
   public int getOrder() {
