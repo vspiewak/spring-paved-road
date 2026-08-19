@@ -39,25 +39,47 @@ The whole pitch fits in one diff. A service pom, before and after :
 | [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, ready for your own pins |
 | [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — and it **imports** the bom (no parent-chaining) |
 | [`service-starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
+| [`mongo-starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
 | [`sample-service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
 
-Coming next, each with its blog post : `conventions-starter` (ArchUnit rules as executable law),
-`cucumber-starter` (canonical BDD steps), `mongo-testkit` (the local dev loop).
+Coming next, each with its blog post : `conventions-starter` (ArchUnit rules as executable law)
+and `cucumber-starter` (canonical BDD steps).
 
 ## The property ladder 🪜
 
 `service-starter` layers configuration around the application, lowest to highest precedence :
 
 ```text
-paved-road-default.yaml      # platform defaults  — the service CAN override
+platform-default.yaml      # platform defaults  — the service CAN override
         <  application.yaml          # the service's own configuration
-                <  paved-road-override.yaml     # platform mandates — the service CANNOT override
-                        <  paved-road-override-<profile>.yaml
+                <  platform-override.yaml     # platform mandates — the service CANNOT override
+                        <  platform-override-<profile>.yaml
 ```
 
-Proven by [`PavedRoadPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/PavedRoadPropertiesTest.java) —
+Proven by [`PlatformPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/platform/PlatformPropertiesTest.java) —
 including the fun one : `sample-service` *tries* to set `management.endpoint.env.show-values: always`,
 and the platform answers `never` 🔒
+
+## Local Mongo auto-load 🌱
+
+`mongo-starter` seeds your local MongoDB at startup, from plain JSON files :
+
+```text
+src/test/resources/mongo/import/
+├── orders/                  # directory name = collection name
+│   ├── order1.json          # one document per file
+│   └── order2.json
+└── products/
+    └── product1.json
+```
+
+* runs only under the `local` profile, on `ApplicationReadyEvent`
+* **host-guarded** 🔒 : unless every Mongo host is `localhost` / `127.0.0.1`, it refuses to load —
+  a misconfigured URI can never seed a shared or production cluster
+* knobs : `platform.mongo.data-import.enabled` (default `true`) and `platform.mongo.data-import.path`
+
+Proven by [`MongoDataImporterTest`](./mongo-starter/src/test/java/com/vspiewak/pavedroad/mongo/MongoDataImporterTest.java) —
+including the one that matters : remote hosts → nothing gets loaded.
 
 ## Quick start
 
@@ -65,6 +87,9 @@ and the platform answers `never` 🔒
 sdk env install      # Java 25 (Temurin) via sdkman, pinned in .sdkmanrc
 ./mvnw install       # build everything : bom → parent → starters → sample-service
 ./format.sh          # apply the formatting law (spotless) on every governed module
+
+# the local dev loop : sample-service + a MongoDB container + the auto-load seed
+./mvnw -pl sample-service spring-boot:test-run
 ```
 
 ## Boot 4 field notes 📓
