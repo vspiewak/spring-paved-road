@@ -38,9 +38,9 @@ The whole pitch fits in one diff. A service pom, before and after :
 |---|---|
 | [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, ready for your own pins |
 | [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — and it **imports** the bom (no parent-chaining) |
-| [`service-starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
-| [`mongo-starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
-| [`sample-service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
+| [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
+| [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
+| [`sample‑service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
 
 Coming next, each with its blog post : `conventions-starter` (ArchUnit rules as executable law)
 and `cucumber-starter` (canonical BDD steps).
