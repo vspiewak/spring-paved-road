@@ -1,4 +1,4 @@
-package com.vspiewak.sample;
+package com.vspiewak.sample.platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -10,11 +10,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * The paved-road property layering, from lowest to highest precedence :
+ * The platform property layering, from lowest to highest precedence :
  *
- * <p>paved-road-default.yaml &lt; application.yaml &lt; paved-road-override(-profile).yaml
+ * <p>platform-default.yaml &lt; application.yaml &lt; platform-override(-profile).yaml
  */
-class PavedRoadPropertiesTest {
+class PlatformPropertiesTest {
 
   @Nested
   @SpringBootTest
@@ -65,7 +65,7 @@ class PavedRoadPropertiesTest {
 
     @Test
     void profileSpecificOverrideAppliesWhenProfileIsActive() {
-      assertThat(environment.getProperty("paved-road.database.host")).isEqualTo("dev-db.internal");
+      assertThat(environment.getProperty("platform.database.host")).isEqualTo("dev-db.internal");
     }
   }
 }
