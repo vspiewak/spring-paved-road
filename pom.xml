@@ -11,6 +11,7 @@
       <module>bom</module>
       <module>parent</module>
       <module>service-starter</module>
+      <module>mongo-starter</module>
       <module>sample-service</module>
    </modules>
 
