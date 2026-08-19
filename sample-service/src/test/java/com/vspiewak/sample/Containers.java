@@ -1,10 +1,17 @@
 package com.vspiewak.sample;
 
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
+import org.springframework.context.annotation.Bean;
 import org.testcontainers.mongodb.MongoDBContainer;
 
-public interface Containers {
+/** One MongoDB container PER Spring context — contexts never share (and re-seed) a database. */
+@TestConfiguration(proxyBeanMethods = false)
+public class Containers {
 
-  @Container @ServiceConnection MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0");
+  @Bean
+  @ServiceConnection
+  MongoDBContainer mongoContainer() {
+    return new MongoDBContainer("mongo:8.0");
+  }
 }

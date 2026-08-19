@@ -3,7 +3,7 @@ package com.vspiewak.sample.platform;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import com.vspiewak.sample.RunWithTestcontainers;
+import com.vspiewak.sample.Containers;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ import org.testcontainers.DockerClientFactory;
 /** End-to-end : local profile + a real MongoDB container → the auto-load seeds the fixtures. */
 @SpringBootTest
 @ActiveProfiles("local")
-@Import(RunWithTestcontainers.TestConfig.class)
+@Import(Containers.class)
 class MongoAutoLoadTest {
 
   @BeforeAll
