@@ -101,6 +101,17 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
   and the `META-INF/spring.factories` key follows. The factories mechanism itself is alive and well :
   Boot 4 registers its *own* post processors with it.
 * The web starter is now `spring-boot-starter-webmvc` (Boot 4 modularization).
+* Test support is modular too : per-starter companions (`spring-boot-starter-webmvc-test`,
+  `spring-boot-starter-actuator-test`, ...) instead of one big `spring-boot-starter-test`.
+* `TestRestTemplate` relocated to `org.springframework.boot.resttestclient` (not deprecated),
+  needs an explicit `@AutoConfigureTestRestTemplate` — and pulls `spring-boot-restclient` for
+  its `RestTemplateBuilder`.
+* The modern way : **`RestTestClient`** (new in Spring Framework 7) — one fluent,
+  WebTestClient-style API that binds to MockMvc *or* a live server. `@AutoConfigureRestTestClient`,
+  zero extra modules. See [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java).
+* Sharing one Testcontainer across several `@SpringBootTest` contexts means every context
+  re-runs seeding into the same database — one container **per context**
+  ([`Containers`](./sample-service/src/test/java/com/vspiewak/sample/Containers.java)) keeps tests honest.
 
 ## At work vs here
 
