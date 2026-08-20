@@ -5,21 +5,21 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.vspiewak.sample.Containers;
 import com.vspiewak.sample.domain.Order;
+import com.vspiewak.sample.repositories.OrderRepository;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.DockerClientFactory;
 
-/** The API over the auto-loaded data : controller → service → repository → seeded MongoDB. */
+/** Full e2e : controller → service → repository → a real MongoDB. Each test seeds its own data. */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
-@ActiveProfiles("local")
 @Import(Containers.class)
 class OrderControllerIT {
 
@@ -30,8 +30,19 @@ class OrderControllerIT {
 
   @Autowired private RestTestClient client;
 
+  @Autowired private OrderRepository repository;
+
+  @BeforeEach
+  void setUp() {
+    repository.deleteAll();
+  }
+
   @Test
-  void shouldReturnAllSeededOrders() {
+  void shouldReturnAllOrders() {
+    // given
+    repository.save(new Order(null, "1", 42));
+    repository.save(new Order(null, "2", 7));
+
     // when
     var response = client.get().uri("/orders/v1/orders").exchange();
 
@@ -42,6 +53,9 @@ class OrderControllerIT {
 
   @Test
   void shouldReturnOneOrderByOrderId() {
+    // given
+    repository.save(new Order(null, "1", 42));
+
     // when
     var response = client.get().uri("/orders/v1/orders/1").exchange();
 

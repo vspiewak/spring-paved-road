@@ -94,7 +94,7 @@ including the one that matters : remote hosts → nothing gets loaded.
 |---|---|---|
 | [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java) | `@WebMvcTest` slice — service mocked, `MockMvcTester` | no |
 | [`OrderRepositoryIT`](./sample-service/src/test/java/com/vspiewak/sample/repositories/OrderRepositoryIT.java) | `@DataMongoTest` slice — real MongoDB, data layer only | yes |
-| [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient` over the auto-loaded data | yes |
+| [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient`, each test seeds its own data | yes |
 
 One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
 earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
