@@ -41,9 +41,8 @@ The whole pitch fits in one diff. A service pom, before and after :
 | [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
 | [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
 | [`cucumber‑starter/`](./cucumber-starter) | Canonical BDD vocabulary : generic HTTP & MongoDB step definitions, written once, reused by every service |
+| [`conventions‑starter/`](./conventions-starter) | [ArchUnit](https://www.archunit.org) rules as executable law : layering, coding rules, test layout — opted into with one empty subclass |
 | [`sample‑service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
-
-Coming next, with its blog post : `conventions-starter` (ArchUnit rules as executable law).
 
 ## The property ladder 🪜
 
@@ -96,6 +95,8 @@ including the one that matters : remote hosts → nothing gets loaded.
 | [`OrderRepositoryIT`](./sample-service/src/test/java/com/vspiewak/sample/repositories/OrderRepositoryIT.java) | `@DataMongoTest` slice — real MongoDB, data layer only | yes |
 | [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient`, each test seeds its own data | yes |
 | [`CucumberIT`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberIT.java) | Full e2e in business language — Gherkin [features](./sample-service/src/test/resources/features), generic steps from `cucumber-starter` | yes |
+| [`ConventionsTest`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsTest.java) | The architecture itself, asserted — ArchUnit rules from `conventions-starter` | no |
+| [`ConventionsIT`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsIT.java) | The runtime conventions, asserted — app name, health probe, from `conventions-starter` | yes |
 
 One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
 earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
@@ -132,6 +133,44 @@ The `*IT` suffix puts the whole suite in the failsafe lane : `./mvnw test` stays
 The vocabulary here is deliberately minimal — every step the starter ships is exercised by the
 sample features. The work version carries the full set (composed request bodies & headers, POST,
 JSON fixture matchers) ; the pattern is the point, not the library.
+
+## Conventions as executable law 👮
+
+Code review shouldn't spend its time on layering and naming — `conventions-starter` turns those
+conventions into tests that fail the build instead. Two lanes, like everything else :
+
+**Static** ([ArchUnit](https://www.archunit.org) on the service's MAIN classes, no Docker) —
+opted into with one empty subclass :
+
+```java
+class ConventionsTest extends PlatformConventionsTest {}
+```
+
+* **layered architecture** — `controllers → services → repositories`, nothing upstream, no shortcuts
+* `@RestController` classes live in `..controllers..` and end with `Controller`
+* no field injection, no `System.out`
+* and the canonical BDD layout : `features/actuator.feature` + `features/service.feature` exist
+
+The subclass lives in a `conventions` package under the service's root test package — the scanned
+package is derived from it, and service-local rules plug in via `additionalArchitectureRules()`.
+
+**Runtime** (the booted service) — the subclass only wires the context :
+
+```java
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@AutoConfigureRestTestClient
+@Import(Containers.class)
+class ConventionsIT extends PlatformConventionsIT {}
+```
+
+* the context loads, and `spring.application.name` is set (traces need a `service.name`)...
+* ...and it **matches the Maven artifactId** — read from `pom.xml`, deliberately not
+  `BuildProperties`, whose backing file only exists after the Maven build ran (IDE runs would fail)
+* `/actuator/health` answers `UP` — the deploy probe, proven before deploy
+
+The work version goes further — repositories as interfaces, logger conventions, `@Observed` span
+naming, a shared error contract, CI / deploy descriptor coherence — same pattern, grown to fleet
+size.
 
 ## Quick start
 
