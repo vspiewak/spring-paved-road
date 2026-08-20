@@ -109,6 +109,11 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
 * The modern way : **`RestTestClient`** (new in Spring Framework 7) — one fluent,
   WebTestClient-style API that binds to MockMvc *or* a live server. `@AutoConfigureRestTestClient`,
   zero extra modules. See [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java).
+* Test slices moved packages too : `@WebMvcTest` → `org.springframework.boot.webmvc.test.autoconfigure`,
+  `@DataMongoTest` → `org.springframework.boot.data.mongodb.test.autoconfigure`.
+* **`MockMvcTester`** is the AssertJ-native MockMvc — `assertThat(mvc.get().uri(...)).hasStatusOk().bodyJson()...`
+  See [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java)
+  (the slice) next to [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) (the real thing).
 * Sharing one Testcontainer across several `@SpringBootTest` contexts means every context
   re-runs seeding into the same database — one container **per context**
   ([`Containers`](./sample-service/src/test/java/com/vspiewak/sample/Containers.java)) keeps tests honest.
