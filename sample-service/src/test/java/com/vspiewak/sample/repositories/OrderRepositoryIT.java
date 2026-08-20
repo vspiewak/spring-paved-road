@@ -26,14 +26,22 @@ class OrderRepositoryIT {
 
   @Test
   void shouldFindByOrderId() {
+    // given
     repository.save(new Order(null, "42", 7));
 
-    assertThat(repository.findByOrderId("42"))
-        .hasValueSatisfying(order -> assertThat(order.amount()).isEqualTo(7));
+    // when
+    var order = repository.findByOrderId("42");
+
+    // then
+    assertThat(order).hasValueSatisfying(found -> assertThat(found.amount()).isEqualTo(7));
   }
 
   @Test
   void shouldReturnEmptyForUnknownOrderId() {
-    assertThat(repository.findByOrderId("nope")).isEmpty();
+    // when
+    var order = repository.findByOrderId("nope");
+
+    // then
+    assertThat(order).isEmpty();
   }
 }

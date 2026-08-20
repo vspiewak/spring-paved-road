@@ -1,7 +1,7 @@
 package com.vspiewak.sample.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
 
 import com.vspiewak.sample.domain.Order;
 import com.vspiewak.sample.services.OrderService;
@@ -24,30 +24,37 @@ class OrderControllerTest {
 
   @Test
   void shouldReturnOrdersAsJson() {
-    when(service.findAll()).thenReturn(List.of(new Order("id-1", "1", 42)));
+    // given
+    given(service.findAll()).willReturn(List.of(new Order("id-1", "1", 42)));
 
-    assertThat(mvc.get().uri("/orders/v1/orders"))
-        .hasStatusOk()
-        .bodyJson()
-        .extractingPath("$[0].orderId")
-        .isEqualTo("1");
+    // when
+    var response = mvc.get().uri("/orders/v1/orders");
+
+    // then
+    assertThat(response).hasStatusOk().bodyJson().extractingPath("$[0].orderId").isEqualTo("1");
   }
 
   @Test
   void shouldReturnOneOrderAsJson() {
-    when(service.findByOrderId("1")).thenReturn(Optional.of(new Order("id-1", "1", 42)));
+    // given
+    given(service.findByOrderId("1")).willReturn(Optional.of(new Order("id-1", "1", 42)));
 
-    assertThat(mvc.get().uri("/orders/v1/orders/1"))
-        .hasStatusOk()
-        .bodyJson()
-        .extractingPath("$.amount")
-        .isEqualTo(42);
+    // when
+    var response = mvc.get().uri("/orders/v1/orders/1");
+
+    // then
+    assertThat(response).hasStatusOk().bodyJson().extractingPath("$.amount").isEqualTo(42);
   }
 
   @Test
   void shouldReturnNotFoundForUnknownOrder() {
-    when(service.findByOrderId("999")).thenReturn(Optional.empty());
+    // given
+    given(service.findByOrderId("999")).willReturn(Optional.empty());
 
-    assertThat(mvc.get().uri("/orders/v1/orders/999")).hasStatus(HttpStatus.NOT_FOUND);
+    // when
+    var response = mvc.get().uri("/orders/v1/orders/999");
+
+    // then
+    assertThat(response).hasStatus(HttpStatus.NOT_FOUND);
   }
 }

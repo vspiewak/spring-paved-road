@@ -32,36 +32,30 @@ class OrderControllerIT {
 
   @Test
   void shouldReturnAllSeededOrders() {
-    var orders =
-        client
-            .get()
-            .uri("/orders/v1/orders")
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .returnResult(Order[].class)
-            .getResponseBody();
+    // when
+    var response = client.get().uri("/orders/v1/orders").exchange();
 
+    // then
+    var orders = response.expectStatus().isOk().returnResult(Order[].class).getResponseBody();
     assertThat(orders).hasSize(2).extracting(Order::orderId).containsExactlyInAnyOrder("1", "2");
   }
 
   @Test
   void shouldReturnOneOrderByOrderId() {
-    var order =
-        client
-            .get()
-            .uri("/orders/v1/orders/1")
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .returnResult(Order.class)
-            .getResponseBody();
+    // when
+    var response = client.get().uri("/orders/v1/orders/1").exchange();
 
+    // then
+    var order = response.expectStatus().isOk().returnResult(Order.class).getResponseBody();
     assertThat(order.amount()).isEqualTo(42);
   }
 
   @Test
   void shouldReturnNotFoundForUnknownOrder() {
-    client.get().uri("/orders/v1/orders/999").exchange().expectStatus().isNotFound();
+    // when
+    var response = client.get().uri("/orders/v1/orders/999").exchange();
+
+    // then
+    response.expectStatus().isNotFound();
   }
 }
