@@ -21,8 +21,12 @@
       <maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
       <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
       <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+      <maven-enforcer-plugin.version>3.6.1</maven-enforcer-plugin.version>
       <spotless-maven-plugin.version>3.9.0</spotless-maven-plugin.version>
       <google-java-format.version>1.36.1</google-java-format.version>
+
+      <!-- enforcer : only contract artifacts may pin their own version -->
+      <enforcer.versionOverride.allowedGroupIds>com.vspiewak.dto</enforcer.versionOverride.allowedGroupIds>
    </properties>
 
    <!-- the fleet architecture : the parent IMPORTS the bom (no parent-chaining) -->
@@ -202,6 +206,71 @@
                </executions>
             </plugin>
 
+            <plugin>
+               <groupId>org.apache.maven.plugins</groupId>
+               <artifactId>maven-enforcer-plugin</artifactId>
+               <version>${maven-enforcer-plugin.version}</version>
+               <executions>
+                  <execution>
+                     <id>no-dependency-version-override</id>
+                     <goals>
+                        <goal>enforce</goal>
+                     </goals>
+                     <configuration>
+                        <rules>
+                           <evaluateBeanshell>
+                              <condition><![CDATA[
+                                        allowedGroupIds = ",${enforcer.versionOverride.allowedGroupIds},";
+                                        scanner = new java.util.Scanner(new java.io.File("${project.basedir}/pom.xml"));
+                                        content = "";
+                                        while (scanner.hasNextLine()) { content = content + scanner.nextLine() + "\n"; }
+                                        scanner.close();
+                                        dmStart = content.indexOf("<dependencyManagement>");
+                                        if (dmStart >= 0) {
+                                            dmEnd = content.indexOf("</dependencyManagement>");
+                                            if (dmEnd >= 0) { content = content.substring(0, dmStart) + content.substring(dmEnd + "</dependencyManagement>".length()); }
+                                        }
+                                        depsStart = content.indexOf("<dependencies>");
+                                        pass = true;
+                                        if (depsStart >= 0) {
+                                            depsEnd = content.indexOf("</dependencies>", depsStart);
+                                            if (depsEnd >= 0) {
+                                                depsSection = content.substring(depsStart, depsEnd);
+                                                searchFrom = 0;
+                                                while (true) {
+                                                    depStart = depsSection.indexOf("<dependency>", searchFrom);
+                                                    if (depStart < 0) break;
+                                                    depEnd = depsSection.indexOf("</dependency>", depStart);
+                                                    if (depEnd < 0) break;
+                                                    dep = depsSection.substring(depStart, depEnd);
+                                                    if (dep.indexOf("<version>") >= 0 || dep.indexOf("<version ") >= 0) {
+                                                        gidStart = dep.indexOf("<groupId>");
+                                                        gidEnd = dep.indexOf("</groupId>");
+                                                        if (gidStart >= 0 && gidEnd >= 0) {
+                                                            gid = dep.substring(gidStart + "<groupId>".length(), gidEnd).trim();
+                                                            if (allowedGroupIds.indexOf("," + gid + ",") < 0) {
+                                                                aidStart = dep.indexOf("<artifactId>");
+                                                                aidEnd = dep.indexOf("</artifactId>");
+                                                                aid = (aidStart >= 0 && aidEnd >= 0) ? dep.substring(aidStart + "<artifactId>".length(), aidEnd).trim() : "?";
+                                                                print("[ENFORCER] " + gid + ":" + aid + " must not specify <version> - let the bom manage it");
+                                                                pass = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    searchFrom = depEnd + "</dependency>".length();
+                                                }
+                                            }
+                                        }
+                                        pass
+                                    ]]></condition>
+                              <message>Dependencies must not declare explicit versions. Remove version tags and let the bom manage versions.</message>
+                           </evaluateBeanshell>
+                        </rules>
+                     </configuration>
+                  </execution>
+               </executions>
+            </plugin>
+
          </plugins>
       </pluginManagement>
 
@@ -234,6 +303,11 @@
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-checkstyle-plugin</artifactId>
+         </plugin>
+
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
          </plugin>
 
       </plugins>
