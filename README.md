@@ -36,14 +36,14 @@ The whole pitch fits in one diff. A service pom, before and after :
 
 | Module | Role |
 |---|---|
-| [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, ready for your own pins |
+| [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, plus the first own pin: `cucumber-bom` (Cucumber is not Boot-managed) |
 | [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset, the surefire / failsafe test split and [JaCoCo](https://www.jacoco.org) coverage — and it **imports** the bom (no parent-chaining) |
 | [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
 | [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
+| [`cucumber‑starter/`](./cucumber-starter) | Canonical BDD vocabulary : generic HTTP & MongoDB step definitions, written once, reused by every service |
 | [`sample‑service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
 
-Coming next, each with its blog post : `conventions-starter` (ArchUnit rules as executable law)
-and `cucumber-starter` (canonical BDD steps).
+Coming next, with its blog post : `conventions-starter` (ArchUnit rules as executable law).
 
 ## The property ladder 🪜
 
@@ -95,9 +95,41 @@ including the one that matters : remote hosts → nothing gets loaded.
 | [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java) | `@WebMvcTest` slice — service mocked, `MockMvcTester` | no |
 | [`OrderRepositoryIT`](./sample-service/src/test/java/com/vspiewak/sample/repositories/OrderRepositoryIT.java) | `@DataMongoTest` slice — real MongoDB, data layer only | yes |
 | [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient`, each test seeds its own data | yes |
+| [`CucumberIT`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberIT.java) | Full e2e in business language — Gherkin [features](./sample-service/src/test/resources/features), generic steps from `cucumber-starter` | yes |
 
 One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
 earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
+
+## BDD, the shared vocabulary 🥒
+
+`cucumber-starter` ships the step definitions every service needs anyway — HTTP requests, status &
+JSON-path assertions, MongoDB seeding — so a service writes **features, not glue** :
+
+```gherkin
+Scenario: List all orders
+  Given The following documents exist in the "orders" collection:
+    | orderId | amount |
+    | 1       | 42     |
+    | 2       | 7      |
+  When I send a GET request to "/orders/v1/orders"
+  Then the response status is 200
+  And the response json path "$" has 2 elements
+```
+
+A service opts in with one test dependency and two tiny classes :
+[`CucumberIT`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberIT.java) (the JUnit 5 suite —
+its glue lists the service package **plus** the starter's step packages) and
+[`CucumberSpringConfiguration`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberSpringConfiguration.java)
+(`@CucumberContextConfiguration` + `@SpringBootTest(RANDOM_PORT)` + the Testcontainers config).
+Steps are plain Spring beans — cucumber-spring instantiates them per scenario, `RestTestClient`
+and `MongoTemplate` arrive by constructor injection, and seeding steps drop the collection first
+so a scenario only ever sees what it seeds.
+
+The `*IT` suffix puts the whole suite in the failsafe lane : `./mvnw test` stays Docker-free.
+
+The vocabulary here is deliberately minimal — every step the starter ships is exercised by the
+sample features. The work version carries the full set (composed request bodies & headers, POST,
+JSON fixture matchers) ; the pattern is the point, not the library.
 
 ## Quick start
 
