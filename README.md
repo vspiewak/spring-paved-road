@@ -38,7 +38,7 @@ The whole pitch fits in one diff. A service pom, before and after :
 |---|---|
 | [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, plus the first own pin: `cucumber-bom` (Cucumber is not Boot-managed) |
 | [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset, the surefire / failsafe test split and [JaCoCo](https://www.jacoco.org) coverage — and it **imports** the bom (no parent-chaining) |
-| [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
+| [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism + the `/actuator/httpexchanges` flight recorder |
 | [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load (seeds from `mongo/import/<collection>/*.json`, host-guarded) + the driver `applicationName` defaulted to the service name |
 | [`cucumber‑starter/`](./cucumber-starter) | Canonical BDD vocabulary : generic HTTP & MongoDB step definitions, written once, reused by every service |
 | [`conventions‑starter/`](./conventions-starter) | [ArchUnit](https://www.archunit.org) rules as executable law : layering, coding rules, test layout — opted into with one empty subclass |
@@ -58,6 +58,21 @@ platform-default.yaml                      # defaults (service CAN override)
 Proven by [`PlatformPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/platform/PlatformPropertiesTest.java) —
 including the fun one : `sample-service` *tries* to set `management.endpoint.env.show-values: always`,
 and the platform answers `never` 🔒
+
+## HTTP flight recorder ✈️
+
+Boot ships the `/actuator/httpexchanges` endpoint but deliberately never auto-configures the
+`HttpExchangeRepository` backing it — expose the endpoint without one and you get nothing.
+`service-starter` fills exactly that gap : the endpoint is in the platform's exposure defaults, and
+[`HttpExchangeConfig`](./service-starter/src/main/java/com/vspiewak/pavedroad/actuator/HttpExchangeConfig.java)
+provides the in-memory repository (last 100 exchanges) whenever the endpoint is available — every
+service gets a free last-requests flight recorder. A service defining its own repository bean
+replaces it (`@ConditionalOnMissingBean`).
+
+Proven by [`HttpExchangeConfigTest`](./service-starter/src/test/java/com/vspiewak/pavedroad/actuator/HttpExchangeConfigTest.java)
+(provided when exposed, absent when not, backs off to a service-owned bean) and end-to-end by
+[`HttpExchangesIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/HttpExchangesIT.java) :
+make a request, find it in `/actuator/httpexchanges`.
 
 ## Local Mongo auto-load 🌱
 
@@ -229,6 +244,12 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
   imports change), and the properties renamed `spring.data.mongodb.*` → **`spring.mongodb.*`**.
   The old property is *silently ignored* — our "URI `appName` wins" test failed with the URI never
   applied at all before we spotted it.
+* HTTP exchanges split across the modular jars : the endpoint stays in `spring-boot-actuator`
+  (packages unchanged), but the servlet recording filter and its auto-configuration moved to
+  `spring-boot-servlet` (`ServletHttpExchangesAutoConfiguration`). And since Boot's two exchange
+  auto-configurations are `@ConditionalOnBean(HttpExchangeRepository)`, a starter providing that
+  bean from an `@AutoConfiguration` must order itself `beforeName` both — a plain `@Configuration`
+  (evaluated before all auto-configuration) never needed to care.
 
 ## At work vs here
 
