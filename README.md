@@ -36,17 +36,52 @@ The whole pitch fits in one diff. A service pom, before and after :
 
 | Module | Role |
 |---|---|
-| [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, plus the first own pin: `cucumber-bom` (Cucumber is not Boot-managed) |
-| [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset, the surefire / failsafe test split and [JaCoCo](https://www.jacoco.org) coverage — and it **imports** the bom (no parent-chaining) |
-| [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism + the `/actuator/httpexchanges` flight recorder |
-| [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load (seeds from `mongo/import/<collection>/*.json`, host-guarded) + the driver `applicationName` defaulted to the service name |
-| [`cucumber‑starter/`](./cucumber-starter) | Canonical BDD vocabulary : generic HTTP & MongoDB step definitions, written once, reused by every service |
-| [`conventions‑starter/`](./conventions-starter) | [ArchUnit](https://www.archunit.org) rules as executable law : layering, coding rules, test layout — opted into with one empty subclass |
-| [`sample‑service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
+| [`bom/`](./bom) | Versions, decided once — services never write a `<version>` again |
+| [`parent/`](./parent) | The build, decided once — plugins, formatting law, style rules, test lanes |
+| [`service‑starter/`](./service-starter) | Sane defaults & platform mandates, shipped as a dependency |
+| [`mongo‑starter/`](./mongo-starter) | The MongoDB defaults every service wants — self-seeding local dev, self-identifying connections |
+| [`cucumber‑starter/`](./cucumber-starter) | The BDD vocabulary, written once — services write features, not glue |
+| [`conventions‑starter/`](./conventions-starter) | The conventions, as tests that fail the build instead of review comments |
+| [`sample‑service/`](./sample-service) | The proof — one service consuming all of it, **the tests are the documentation** |
 
-## The property ladder 🪜
+## `bom` — versions, decided once
 
-`service-starter` layers configuration around the application, lowest to highest precedence :
+Imports `spring-boot-dependencies`, then adds the pins Boot doesn't manage — `cucumber-bom`,
+`archunit` — under a comment that says exactly that : *our own pins start here*. Every module and
+service downstream declares its dependencies **versionless** ; upgrading the fleet is one diff in
+one file.
+
+## `parent` — the build, decided once
+
+Every service inherits the same build by pointing at this parent, which **imports** the bom
+(no parent-chaining — the two concerns stay separately releasable) :
+
+* every plugin version pinned once in `pluginManagement`
+* the formatting law : [Spotless](https://github.com/diffplug/spotless) with google-java-format,
+  sortPom, yaml & markdown — `./format.sh` applies it everywhere
+* a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — the interesting rules live in
+  `conventions-starter`, as tests
+* and the test **lanes** : surefire / failsafe split on the `*IT` suffix,
+  [JaCoCo](https://www.jacoco.org) covering both
+
+```bash
+./mvnw test          # fast lane : unit & slice tests — seconds, no Docker
+./mvnw verify        # full lane : + *IT integration tests (Testcontainers) + coverage report
+```
+
+One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
+earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
+
+## `service-starter` — platform behavior as a dependency
+
+How every service behaves at runtime : sane defaults, platform mandates, auto-configured beans.
+Both Boot extension points on display — an `EnvironmentPostProcessor` registered in
+`spring.factories` (the property ladder) and an `@AutoConfiguration` registered in
+`AutoConfiguration.imports` (the flight recorder).
+
+### The property ladder 🪜
+
+Configuration is layered around the application, lowest to highest precedence :
 
 ```text
 platform-default.yaml                      # defaults (service CAN override)
@@ -57,9 +92,11 @@ platform-default.yaml                      # defaults (service CAN override)
 
 Proven by [`PlatformPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/platform/PlatformPropertiesTest.java) —
 including the fun one : `sample-service` *tries* to set `management.endpoint.env.show-values: always`,
-and the platform answers `never` 🔒
+and the platform answers `never` 🔒 — and by the starter's own
+[`ServiceStarterIT`](./service-starter/src/test/java/com/vspiewak/pavedroad/env/ServiceStarterIT.java),
+booting a bare context with zero service configuration.
 
-## HTTP flight recorder ✈️
+### The HTTP flight recorder ✈️
 
 Boot ships the `/actuator/httpexchanges` endpoint but deliberately never auto-configures the
 `HttpExchangeRepository` backing it — expose the endpoint without one and you get nothing.
@@ -74,9 +111,14 @@ Proven by [`HttpExchangeConfigTest`](./service-starter/src/test/java/com/vspiewa
 [`HttpExchangesIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/HttpExchangesIT.java) :
 make a request, find it in `/actuator/httpexchanges`.
 
-## Local Mongo auto-load 🌱
+## `mongo-starter` — seeded locally, named everywhere
 
-`mongo-starter` seeds your local MongoDB at startup, from plain JSON files :
+How every service talks to MongoDB : a local dev loop that seeds itself, and connections that
+identify themselves.
+
+### Local auto-load 🌱
+
+Seeds your local MongoDB at startup, from plain JSON files :
 
 ```text
 src/test/resources/mongo/import/
@@ -93,13 +135,15 @@ src/test/resources/mongo/import/
 * knobs : `platform.mongo.data-import.enabled` (default `true`) and `platform.mongo.data-import.path`
 
 Proven by [`MongoDataImporterTest`](./mongo-starter/src/test/java/com/vspiewak/pavedroad/mongo/MongoDataImporterTest.java) —
-including the one that matters : remote hosts → nothing gets loaded.
+including the one that matters : remote hosts → nothing gets loaded. And end-to-end by
+[`MongoAutoLoadIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/MongoAutoLoadIT.java) :
+the booted `sample-service`, under the `local` profile, finds the seed in its database.
 
-## Mongo connections, named 🏷️
+### Connections, named 🏷️
 
-`mongo-starter` also defaults the driver's `applicationName` to `spring.application.name` — so
-connections show up under the service name in Atlas / server logs, without every service appending
-`appName=...` to its URI. Textbook paved road :
+Defaults the driver's `applicationName` to `spring.application.name` — so connections show up
+under the service name in Atlas / server logs, without every service appending `appName=...` to
+its URI. Textbook paved road :
 
 * an `appName` set explicitly in the URI **wins** — Boot's own customizer (order 0) applies the
   connection string first ; this unordered one runs after and only fills the gap
@@ -111,31 +155,10 @@ including through Boot's **full** customizer chain, both directions. And end-to-
 [`MongoAppNameIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/MongoAppNameIT.java) :
 the very connection running the `$currentOp` aggregation identifies itself as `sample-service`.
 
-## Tests, two lanes 🧪
+## `cucumber-starter` — BDD, the shared vocabulary 🥒
 
-```bash
-./mvnw test          # fast lane : unit & slice tests — seconds, no Docker
-./mvnw verify        # full lane : + *IT integration tests (Testcontainers) + coverage report
-```
-
-`sample-service` shows the whole pyramid on one endpoint :
-
-| Test | Kind | Docker |
-|---|---|---|
-| [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java) | `@WebMvcTest` slice — service mocked, `MockMvcTester` | no |
-| [`OrderRepositoryIT`](./sample-service/src/test/java/com/vspiewak/sample/repositories/OrderRepositoryIT.java) | `@DataMongoTest` slice — real MongoDB, data layer only | yes |
-| [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient`, each test seeds its own data | yes |
-| [`CucumberIT`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberIT.java) | Full e2e in business language — Gherkin [features](./sample-service/src/test/resources/features), generic steps from `cucumber-starter` | yes |
-| [`ConventionsTest`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsTest.java) | The architecture itself, asserted — ArchUnit rules from `conventions-starter` | no |
-| [`ConventionsIT`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsIT.java) | The runtime conventions, asserted — app name, health probe, from `conventions-starter` | yes |
-
-One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
-earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
-
-## BDD, the shared vocabulary 🥒
-
-`cucumber-starter` ships the step definitions every service needs anyway — HTTP requests, status &
-JSON-path assertions, MongoDB seeding — so a service writes **features, not glue** :
+Ships the step definitions every service needs anyway — HTTP requests, status & JSON-path
+assertions, MongoDB seeding — so a service writes **features, not glue** :
 
 ```gherkin
 Background:
@@ -165,10 +188,10 @@ The vocabulary here is deliberately minimal — every step the starter ships is 
 sample features. The work version carries the full set (composed request bodies & headers, POST,
 JSON fixture matchers) ; the pattern is the point, not the library.
 
-## Conventions as executable law 👮
+## `conventions-starter` — conventions as executable law 👮
 
-Code review shouldn't spend its time on layering and naming — `conventions-starter` turns those
-conventions into tests that fail the build instead. Two lanes, like everything else :
+Code review shouldn't spend its time on layering and naming — those conventions become tests that
+fail the build instead. Two lanes, like everything else :
 
 **Static** ([ArchUnit](https://www.archunit.org) on the service's MAIN classes, no Docker) —
 opted into with one empty subclass :
@@ -203,6 +226,22 @@ The work version goes further — repositories as interfaces, logger conventions
 naming, a shared error contract, CI / deploy descriptor coherence — same pattern, grown to fleet
 size.
 
+## `sample-service` — the tests are the documentation 🧪
+
+A start.spring.io-shaped service consuming all of it : one `<parent>` line, the starters, a plain
+`orders` API. Its test sources are the living documentation — the platform proofs sit in the
+`platform` package, the conventions opt-ins in `conventions`, and the whole test pyramid fits on
+one endpoint :
+
+| Test | Kind | Docker |
+|---|---|---|
+| [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java) | `@WebMvcTest` slice — service mocked, `MockMvcTester` | no |
+| [`OrderRepositoryIT`](./sample-service/src/test/java/com/vspiewak/sample/repositories/OrderRepositoryIT.java) | `@DataMongoTest` slice — real MongoDB, data layer only | yes |
+| [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient`, each test seeds its own data | yes |
+| [`CucumberIT`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberIT.java) | Full e2e in business language — Gherkin [features](./sample-service/src/test/resources/features), generic steps from `cucumber-starter` | yes |
+| [`ConventionsTest`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsTest.java) | The architecture itself, asserted — ArchUnit rules from `conventions-starter` | no |
+| [`ConventionsIT`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsIT.java) | The runtime conventions, asserted — app name, health probe, from `conventions-starter` | yes |
+
 ## Quick start
 
 ```bash
@@ -213,6 +252,11 @@ sdk env install      # Java 25 (Temurin) via sdkman, pinned in .sdkmanrc
 # the local dev loop : sample-service + a MongoDB container + the auto-load seed
 ./mvnw -pl sample-service spring-boot:test-run
 ```
+
+The dev loop is powered by
+[`RunWithTestcontainers`](./sample-service/src/test/java/com/vspiewak/sample/RunWithTestcontainers.java) —
+`spring-boot:test-run` boots the app from test sources, so the Testcontainers MongoDB and the
+`local` profile come along for free.
 
 ## Boot 4 field notes 📓
 
