@@ -21,7 +21,7 @@ import org.testcontainers.DockerClientFactory;
 @AutoConfigureRestTestClient
 @ActiveProfiles("local")
 @Import(Containers.class)
-class OrderControllerTest {
+class OrderControllerIT {
 
   @BeforeAll
   static void dockerRequired() {

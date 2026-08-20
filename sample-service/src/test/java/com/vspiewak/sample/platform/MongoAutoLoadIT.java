@@ -18,7 +18,7 @@ import org.testcontainers.DockerClientFactory;
 @SpringBootTest
 @ActiveProfiles("local")
 @Import(Containers.class)
-class MongoAutoLoadTest {
+class MongoAutoLoadIT {
 
   @BeforeAll
   static void dockerRequired() {

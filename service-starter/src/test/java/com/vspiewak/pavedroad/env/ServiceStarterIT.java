@@ -10,8 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
 
 /** Proves both post processors are picked up from META-INF/spring.factories at boot time. */
-@SpringBootTest(classes = ServiceStarterIntegrationTest.TestApplication.class)
-class ServiceStarterIntegrationTest {
+@SpringBootTest(classes = ServiceStarterIT.TestApplication.class)
+class ServiceStarterIT {
 
   @SpringBootConfiguration
   @EnableAutoConfiguration
