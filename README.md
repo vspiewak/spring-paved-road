@@ -2,7 +2,7 @@
 
 [![build](https://github.com/vspiewak/spring-paved-road/actions/workflows/build.yml/badge.svg)](https://github.com/vspiewak/spring-paved-road/actions/workflows/build.yml) ![Java](https://img.shields.io/badge/Java-25-orange) ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-green)
 
-**The paved road : parent, BOM & Spring Boot starters that align a 99-service fleet — distilled into one runnable monorepo.**
+**The paved road : parent, BOM & Spring Boot starters that align a whole fleet — distilled into one runnable monorepo.**
 
 At work, these patterns govern ~100 Spring Boot microservices maintained by ~100 engineers :
 one `<parent>` line in a service's pom, and it inherits version coherence, formatting law,
