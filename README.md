@@ -50,10 +50,10 @@ Coming next, with its blog post : `conventions-starter` (ArchUnit rules as execu
 `service-starter` layers configuration around the application, lowest to highest precedence :
 
 ```text
-platform-default.yaml                          # platform defaults — the service CAN override
-   <  application.yaml                         # the service's own configuration
-      <  platform-override.yaml                # platform mandates — the service CANNOT override
-         <  platform-override-<profile>.yaml   # per-profile mandates
+platform-default.yaml                      # defaults (service CAN override)
+  < application.yaml                       # the service's own configuration
+    < platform-override.yaml               # mandates (service CANNOT override)
+      < platform-override-<profile>.yaml   # per-profile mandates
 ```
 
 Proven by [`PlatformPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/platform/PlatformPropertiesTest.java) —
