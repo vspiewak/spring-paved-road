@@ -106,11 +106,13 @@ earlier and integration-test coverage silently vanishes from the report. Ask me 
 JSON-path assertions, MongoDB seeding — so a service writes **features, not glue** :
 
 ```gherkin
-Scenario: List all orders
+Background:
   Given The following documents exist in the "orders" collection:
     | orderId | amount |
     | 1       | 42     |
     | 2       | 7      |
+
+Scenario: List all orders
   When I send a GET request to "/orders/v1/orders"
   Then the response status is 200
   And the response json path "$" has 2 elements
