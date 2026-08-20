@@ -37,7 +37,7 @@ The whole pitch fits in one diff. A service pom, before and after :
 | Module | Role |
 |---|---|
 | [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, ready for your own pins |
-| [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — and it **imports** the bom (no parent-chaining) |
+| [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset, the surefire / failsafe test split and [JaCoCo](https://www.jacoco.org) coverage — and it **imports** the bom (no parent-chaining) |
 | [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
 | [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
 | [`sample‑service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
@@ -80,6 +80,24 @@ src/test/resources/mongo/import/
 
 Proven by [`MongoDataImporterTest`](./mongo-starter/src/test/java/com/vspiewak/pavedroad/mongo/MongoDataImporterTest.java) —
 including the one that matters : remote hosts → nothing gets loaded.
+
+## Tests, two lanes 🧪
+
+```bash
+./mvnw test          # fast lane : unit & slice tests — seconds, no Docker
+./mvnw verify        # full lane : + *IT integration tests (Testcontainers) + coverage report
+```
+
+`sample-service` shows the whole pyramid on one endpoint :
+
+| Test | Kind | Docker |
+|---|---|---|
+| [`OrderControllerTest`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerTest.java) | `@WebMvcTest` slice — service mocked, `MockMvcTester` | no |
+| [`OrderRepositoryIT`](./sample-service/src/test/java/com/vspiewak/sample/repositories/OrderRepositoryIT.java) | `@DataMongoTest` slice — real MongoDB, data layer only | yes |
+| [`OrderControllerIT`](./sample-service/src/test/java/com/vspiewak/sample/controllers/OrderControllerIT.java) | Full e2e — `RestTestClient` over the auto-loaded data | yes |
+
+One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
+earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
 
 ## Quick start
 
