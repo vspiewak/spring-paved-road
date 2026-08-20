@@ -47,9 +47,9 @@ The whole pitch fits in one diff. A service pom, before and after :
 ## `bom` — versions, decided once
 
 Imports `spring-boot-dependencies`, then adds the pins Boot doesn't manage — `cucumber-bom`,
-`archunit` — under a comment that says exactly that : *our own pins start here*. Every module and
-service downstream declares its dependencies **versionless** ; upgrading the fleet is one diff in
-one file.
+`archunit`, and the platform's own starters — under a comment that says exactly that : *our own
+pins start here*. Every module and service downstream declares its dependencies **versionless** ;
+upgrading the fleet is one diff in one file.
 
 ## `parent` — the build, decided once
 
@@ -61,6 +61,8 @@ Every service inherits the same build by pointing at this parent, which **import
   sortPom, yaml & markdown — `./format.sh` applies it everywhere
 * a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — the interesting rules live in
   `conventions-starter`, as tests
+* the **version mandate** : [maven-enforcer](https://maven.apache.org/enforcer/) fails the build on
+  any dependency declaring a `<version>` — versions come from the bom, period
 * and the test **lanes** : surefire / failsafe split on the `*IT` suffix,
   [JaCoCo](https://www.jacoco.org) covering both
 
@@ -71,6 +73,14 @@ Every service inherits the same build by pointing at this parent, which **import
 
 One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
 earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
+
+The version mandate has the escape hatch that keeps it a paved road : groupIds on the allow-list
+(`enforcer.versionOverride.allowedGroupIds`, here `com.vspiewak.dto`) may pin their own version —
+contract (DTO) artifacts evolve at the pace of their producer / consumer pair, not the fleet.
+Try it : add a `<version>` to any dependency in `sample-service` and the build greets you with
+`[ENFORCER] ... must not specify <version> - let the bom manage it`. It caught its first offender
+during its own introduction : `sample-service` itself, which pinned the starters with
+`${project.version}` until the bom managed them.
 
 ## `service-starter` — platform behavior as a dependency
 
