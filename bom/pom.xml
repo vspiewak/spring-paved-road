@@ -10,6 +10,7 @@
 
    <properties>
       <spring-boot.version>4.1.0</spring-boot.version>
+      <cucumber.version>7.34.7</cucumber.version>
    </properties>
 
    <dependencyManagement>
@@ -20,6 +21,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-dependencies</artifactId>
             <version>${spring-boot.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+         </dependency>
+
+         <!-- our own pins start here : cucumber is not managed by spring-boot-dependencies -->
+         <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-bom</artifactId>
+            <version>${cucumber.version}</version>
             <type>pom</type>
             <scope>import</scope>
          </dependency>
