@@ -39,7 +39,7 @@ The whole pitch fits in one diff. A service pom, before and after :
 | [`bom/`](./bom) | Dependency versions, once — imports `spring-boot-dependencies`, plus the first own pin: `cucumber-bom` (Cucumber is not Boot-managed) |
 | [`parent/`](./parent) | The paved road : plugin pinning, compiler config, [Spotless](https://github.com/diffplug/spotless) (google-java-format + sortPom), a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset, the surefire / failsafe test split and [JaCoCo](https://www.jacoco.org) coverage — and it **imports** the bom (no parent-chaining) |
 | [`service‑starter/`](./service-starter) | Platform behavior as a dependency : the default / override property mechanism |
-| [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load : seeds from `mongo/import/<collection>/*.json`, host-guarded — it can never touch a remote cluster |
+| [`mongo‑starter/`](./mongo-starter) | Local-dev Mongo auto-load (seeds from `mongo/import/<collection>/*.json`, host-guarded) + the driver `applicationName` defaulted to the service name |
 | [`cucumber‑starter/`](./cucumber-starter) | Canonical BDD vocabulary : generic HTTP & MongoDB step definitions, written once, reused by every service |
 | [`conventions‑starter/`](./conventions-starter) | [ArchUnit](https://www.archunit.org) rules as executable law : layering, coding rules, test layout — opted into with one empty subclass |
 | [`sample‑service/`](./sample-service) | A start.spring.io-shaped service consuming all of it — **the tests are the documentation** |
@@ -79,6 +79,22 @@ src/test/resources/mongo/import/
 
 Proven by [`MongoDataImporterTest`](./mongo-starter/src/test/java/com/vspiewak/pavedroad/mongo/MongoDataImporterTest.java) —
 including the one that matters : remote hosts → nothing gets loaded.
+
+## Mongo connections, named 🏷️
+
+`mongo-starter` also defaults the driver's `applicationName` to `spring.application.name` — so
+connections show up under the service name in Atlas / server logs, without every service appending
+`appName=...` to its URI. Textbook paved road :
+
+* an `appName` set explicitly in the URI **wins** — Boot's own customizer (order 0) applies the
+  connection string first ; this unordered one runs after and only fills the gap
+* a service defining its own `mongoAppNameCustomizer` bean replaces it (`@ConditionalOnMissingBean`)
+* kill switch : `platform.mongo.app-name.enabled=false`
+
+Proven by [`MongoAppNameConfigTest`](./mongo-starter/src/test/java/com/vspiewak/pavedroad/mongo/MongoAppNameConfigTest.java) —
+including through Boot's **full** customizer chain, both directions. And end-to-end, server-side, by
+[`MongoAppNameIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/MongoAppNameIT.java) :
+the very connection running the `$currentOp` aggregation identifies itself as `sample-service`.
 
 ## Tests, two lanes 🧪
 
@@ -208,6 +224,11 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
 * Sharing one Testcontainer across several `@SpringBootTest` contexts means every context
   re-runs seeding into the same database — one container **per context**
   ([`Containers`](./sample-service/src/test/java/com/vspiewak/sample/Containers.java)) keeps tests honest.
+* Mongo moved out of `data` : the auto-configuration now lives in
+  `org.springframework.boot.mongodb.autoconfigure` (so `MongoClientSettingsBuilderCustomizer`
+  imports change), and the properties renamed `spring.data.mongodb.*` → **`spring.mongodb.*`**.
+  The old property is *silently ignored* — our "URI `appName` wins" test failed with the URI never
+  applied at all before we spotted it.
 
 ## At work vs here
 
