@@ -12,71 +12,81 @@
    <artifactId>sample-service</artifactId>
 
    <dependencies>
+
       <dependency>
          <groupId>com.vspiewak</groupId>
          <artifactId>service-starter</artifactId>
-         <version>${project.version}</version>
       </dependency>
+
+      <dependency>
+         <groupId>com.vspiewak</groupId>
+         <artifactId>mongo-starter</artifactId>
+      </dependency>
+
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-actuator</artifactId>
       </dependency>
+
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-webmvc</artifactId>
       </dependency>
-      <dependency>
-         <groupId>com.vspiewak</groupId>
-         <artifactId>mongo-starter</artifactId>
-         <version>${project.version}</version>
-      </dependency>
+
       <dependency>
          <groupId>org.projectlombok</groupId>
          <artifactId>lombok</artifactId>
          <optional>true</optional>
       </dependency>
+
       <dependency>
          <groupId>com.vspiewak</groupId>
          <artifactId>cucumber-starter</artifactId>
-         <version>${project.version}</version>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>com.vspiewak</groupId>
          <artifactId>conventions-starter</artifactId>
-         <version>${project.version}</version>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-webmvc-test</artifactId>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-actuator-test</artifactId>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-data-mongodb-test</artifactId>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-testcontainers</artifactId>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>org.testcontainers</groupId>
          <artifactId>testcontainers-mongodb</artifactId>
          <scope>test</scope>
       </dependency>
+
       <dependency>
          <groupId>org.testcontainers</groupId>
          <artifactId>testcontainers-junit-jupiter</artifactId>
          <scope>test</scope>
       </dependency>
+
    </dependencies>
 
 </project>
