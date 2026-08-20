@@ -92,7 +92,7 @@
                <version>${jacoco-maven-plugin.version}</version>
                <configuration>
                   <excludes>
-                     <exclude>**/SampleServiceApplication.class</exclude>
+                     <exclude>**/*Application.class</exclude>
                   </excludes>
                </configuration>
                <executions>
