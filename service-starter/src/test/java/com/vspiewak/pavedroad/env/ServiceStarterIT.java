@@ -22,7 +22,7 @@ class ServiceStarterIT {
   @Test
   void defaultsAndOverridesShouldBeLoadedThroughSpringFactories() {
     assertThat(environment.getProperty("management.endpoints.web.exposure.include"))
-        .isEqualTo("health,info");
+        .isEqualTo("health,info,httpexchanges");
     assertThat(environment.getProperty("management.endpoint.env.show-values")).isEqualTo("never");
   }
 }

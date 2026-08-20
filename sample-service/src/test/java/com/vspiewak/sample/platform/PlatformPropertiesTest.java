@@ -26,7 +26,7 @@ class PlatformPropertiesTest {
     void platformDefaultAppliesWhenTheServiceSaysNothing() {
       // the service does not configure endpoint exposure → the platform default applies
       assertThat(environment.getProperty("management.endpoints.web.exposure.include"))
-          .isEqualTo("health,info");
+          .isEqualTo("health,info,httpexchanges");
     }
   }
 
