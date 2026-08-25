@@ -11,7 +11,7 @@ style rules and platform behavior. This repo is the pattern, extracted and runna
 📝 The story so far : [migrating 1,273 repos in under an hour](https://vspiewak.com/migrating-1200-repos-from-bitbucket-to-github-in-under-an-hour) ·
 [27,000+ PRs with gh-auto-updater](https://vspiewak.com/gh-auto-updater-mass-pull-requests-across-a-repo-fleet) — more on [vspiewak.com](https://vspiewak.com)
 
-## The idea
+## 💡 The idea
 
 A **paved road** is not a fence. Services get :
 
@@ -32,7 +32,7 @@ The whole pitch fits in one diff. A service pom, before and after :
  </parent>
 ```
 
-## Modules
+## 🧱 Modules
 
 | Module | Role |
 |---|---|
@@ -44,21 +44,41 @@ The whole pitch fits in one diff. A service pom, before and after :
 | [`conventions‑starter/`](./conventions-starter) | The conventions, as tests that fail the build instead of review comments |
 | [`sample‑service/`](./sample-service) | The proof — one service consuming all of it, **the tests are the documentation** |
 
-## `bom` — versions, decided once
+```mermaid
+flowchart TD
+    bom["<b>bom</b><br/>versions, decided once"]
+    parent["<b>parent</b><br/>the build, decided once"]
+    subgraph starters ["the starters — platform behavior, shipped as dependencies"]
+        direction LR
+        ss["service-starter"]
+        ms["mongo-starter"]
+        cs["cucumber-starter"]
+        cv["conventions-starter"]
+    end
+    sample["<b>sample-service</b><br/>the proof"]
+
+    bom -->|"import scope"| parent
+    parent -->|"parent of"| starters
+    parent -->|"parent of"| sample
+    starters -->|"dependency of"| sample
+```
+
+## 📌 `bom` — versions, decided once
 
 Imports `spring-boot-dependencies`, then adds the pins Boot doesn't manage — `cucumber-bom`,
 `archunit`, and the platform's own starters — under a comment that says exactly that : *our own
 pins start here*. Every module and service downstream declares its dependencies **versionless** ;
 upgrading the fleet is one diff in one file.
 
-## `parent` — the build, decided once
+## 🏗️ `parent` — the build, decided once
 
 Every service inherits the same build by pointing at this parent, which **imports** the bom
 (no parent-chaining — the two concerns stay separately releasable) :
 
 * every plugin version pinned once in `pluginManagement`
 * the formatting law : [Spotless](https://github.com/diffplug/spotless) with google-java-format,
-  sortPom, yaml & markdown — `./format.sh` applies it everywhere
+  sortPom, yaml & markdown — `spotless:check` runs at **`compile`**, so a formatting slip fails
+  the build in *both* lanes, and `./format.sh` is the one command that fixes it
 * a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — the interesting rules live in
   `conventions-starter`, as tests
 * the **version mandate** : [maven-enforcer](https://maven.apache.org/enforcer/) fails the build on
@@ -66,30 +86,64 @@ Every service inherits the same build by pointing at this parent, which **import
 * and the test **lanes** : surefire / failsafe split on the `*IT` suffix,
   [JaCoCo](https://www.jacoco.org) covering both
 
+The version mandate has the escape hatch that keeps it a paved road : groupIds on the allow-list
+(`enforcer.versionOverride.allowedGroupIds`, here `com.vspiewak.dto`) may pin their own version —
+contract (DTO) artifacts evolve at the pace of their producer / consumer pair, not the fleet.
+Try it : add a `<version>` to any dependency in `sample-service`, and the build stops you at
+`validate` — before a single class is compiled :
+
+![The build failing at validate on a dependency that declares its own version](./docs/images/version-mandate.png)
+
+It caught its first offender during its own introduction : `sample-service` itself, which pinned
+the starters with `${project.version}` until the bom managed them.
+
 ```bash
 ./mvnw test          # fast lane : unit & slice tests — seconds, no Docker
 ./mvnw verify        # full lane : + *IT integration tests (Testcontainers) + coverage report
 ```
 
-One hard-earned detail : the JaCoCo report is bound to **`post-integration-test`** — bind it any
-earlier and integration-test coverage silently vanishes from the report. Ask me how I know 🥲
+![The fast lane : the whole reactor, unit & slice tests, in nine seconds without Docker](./docs/images/fast-lane.png)
 
-The version mandate has the escape hatch that keeps it a paved road : groupIds on the allow-list
-(`enforcer.versionOverride.allowedGroupIds`, here `com.vspiewak.dto`) may pin their own version —
-contract (DTO) artifacts evolve at the pace of their producer / consumer pair, not the fleet.
-Try it : add a `<version>` to any dependency in `sample-service` and the build greets you with
-`[ENFORCER] ... must not specify <version> - let the bom manage it`. It caught its first offender
-during its own introduction : `sample-service` itself, which pinned the starters with
-`${project.version}` until the bom managed them.
+A paved road never just says *no*. When the formatting law is broken, the build prints the offending
+diff and the way out — and never asks you to work out the fix yourself :
 
-## `service-starter` — platform behavior as a dependency
+![The build failing on a formatting violation, showing the diff and telling you to run spotless:apply](./docs/images/formatting-law.png)
+
+`./format.sh` is that `spotless:apply`, across every governed module at once. Its one piece of
+cleverness is the exclusion list : the bom and the root aggregator sit outside the parent chain, so
+a naive `spotless:apply` over the whole reactor resolves an **unpinned** spotless — 3.10.0 instead
+of the managed 3.9.0 — and then fails on the bom anyway. Staying inside the parent chain is what
+keeps even the ad-hoc invocation under the version mandate.
+
+Which makes the script a *monorepo* convenience, not a part of the paved road itself : a service
+that adopts the parent inherits the **enforcement**, and needs no script at all — `./mvnw
+spotless:apply`, exactly what the failure message already tells it to run.
+
+Three hard-earned details, all of them failsafe / JaCoCo :
+
+* the JaCoCo report is bound to **`post-integration-test`** — bind it any earlier and
+  integration-test coverage silently vanishes from the report. Ask me how I know 🥲
+* failsafe's `classesDirectory` defaults to *the built artifact JAR* — which, after
+  `spring-boot:repackage`, is the fat jar with the classes buried under `BOOT-INF/classes`.
+  Pointing it back at `${project.build.outputDirectory}` runs the `*IT` lane against plain class
+  files, exactly like the fast lane.
+* the Gherkin HTML report is switched on through failsafe's `argLine` — which **must** keep the
+  `@{argLine}` placeholder, because that placeholder *is* the JaCoCo agent. Overwrite it and
+  coverage quietly drops to zero.
+
+Both reports land under `sample-service/target/site/` : coverage in `jacoco/index.html`, the
+Gherkin run in `cucumber/index.html`.
+
+![The JaCoCo report for sample-service, every package at 100%](./docs/images/coverage-report.png)
+
+## 🍃 `service-starter` — platform behavior as a dependency
 
 How every service behaves at runtime : sane defaults, platform mandates, auto-configured beans.
 Both Boot extension points on display — an `EnvironmentPostProcessor` registered in
 `spring.factories` (the property ladder) and an `@AutoConfiguration` registered in
 `AutoConfiguration.imports` (the flight recorder).
 
-### The property ladder 🪜
+### 🪜 The property ladder
 
 Configuration is layered around the application, lowest to highest precedence :
 
@@ -106,7 +160,7 @@ and the platform answers `never` 🔒 — and by the starter's own
 [`ServiceStarterIT`](./service-starter/src/test/java/com/vspiewak/pavedroad/env/ServiceStarterIT.java),
 booting a bare context with zero service configuration.
 
-### The HTTP flight recorder ✈️
+### ✈️ The HTTP flight recorder
 
 Boot ships the `/actuator/httpexchanges` endpoint but deliberately never auto-configures the
 `HttpExchangeRepository` backing it — expose the endpoint without one and you get nothing.
@@ -121,12 +175,12 @@ Proven by [`HttpExchangeConfigTest`](./service-starter/src/test/java/com/vspiewa
 [`HttpExchangesIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/HttpExchangesIT.java) :
 make a request, find it in `/actuator/httpexchanges`.
 
-## `mongo-starter` — seeded locally, named everywhere
+## 🥭 `mongo-starter` — seeded locally, named everywhere
 
 How every service talks to MongoDB : a local dev loop that seeds itself, and connections that
 identify themselves.
 
-### Local auto-load 🌱
+### 🌱 Local auto-load
 
 Seeds your local MongoDB at startup, from plain JSON files :
 
@@ -149,7 +203,7 @@ including the one that matters : remote hosts → nothing gets loaded. And end-t
 [`MongoAutoLoadIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/MongoAutoLoadIT.java) :
 the booted `sample-service`, under the `local` profile, finds the seed in its database.
 
-### Connections, named 🏷️
+### 🏷️ Connections, named
 
 Defaults the driver's `applicationName` to `spring.application.name` — so connections show up
 under the service name in Atlas / server logs, without every service appending `appName=...` to
@@ -165,7 +219,7 @@ including through Boot's **full** customizer chain, both directions. And end-to-
 [`MongoAppNameIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/MongoAppNameIT.java) :
 the very connection running the `$currentOp` aggregation identifies itself as `sample-service`.
 
-## `cucumber-starter` — BDD, the shared vocabulary 🥒
+## 🥒 `cucumber-starter` — BDD, the shared vocabulary
 
 Ships the step definitions every service needs anyway — HTTP requests, status & JSON-path
 assertions, MongoDB seeding — so a service writes **features, not glue** :
@@ -183,6 +237,10 @@ Scenario: List all orders
   And the response json path "$" has 2 elements
 ```
 
+...and gets, for free, a report that reads like the feature file it came from :
+
+![The Cucumber HTML report, the Orders API feature green step by step](./docs/images/cucumber-report.png)
+
 A service opts in with one test dependency and two tiny classes :
 [`CucumberIT`](./sample-service/src/test/java/com/vspiewak/sample/cucumber/CucumberIT.java) (the JUnit 5 suite —
 its glue lists the service package **plus** the starter's step packages) and
@@ -198,7 +256,7 @@ The vocabulary here is deliberately minimal — every step the starter ships is 
 sample features. The work version carries the full set (composed request bodies & headers, POST,
 JSON fixture matchers) ; the pattern is the point, not the library.
 
-## `conventions-starter` — conventions as executable law 👮
+## 👮 `conventions-starter` — conventions as executable law
 
 Code review shouldn't spend its time on layering and naming — those conventions become tests that
 fail the build instead. Two lanes, like everything else :
@@ -236,7 +294,7 @@ The work version goes further — repositories as interfaces, logger conventions
 naming, a shared error contract, CI / deploy descriptor coherence — same pattern, grown to fleet
 size.
 
-## `sample-service` — the tests are the documentation 🧪
+## 🧪 `sample-service` — the tests are the documentation
 
 A start.spring.io-shaped service consuming all of it : one `<parent>` line, the starters, a plain
 `orders` API. Its test sources are the living documentation — the platform proofs sit in the
@@ -252,23 +310,49 @@ one endpoint :
 | [`ConventionsTest`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsTest.java) | The architecture itself, asserted — ArchUnit rules from `conventions-starter` | no |
 | [`ConventionsIT`](./sample-service/src/test/java/com/vspiewak/sample/conventions/ConventionsIT.java) | The runtime conventions, asserted — app name, health probe, from `conventions-starter` | yes |
 
-## Quick start
+## 🚀 Quick start
+
+You need **Java 25** — `.sdkmanrc` pins Temurin 25.0.4 — and, for anything past the fast lane, a
+running **Docker** daemon : [Testcontainers](https://testcontainers.com) starts a real MongoDB for
+the `*IT` tests and for the dev loop. Maven itself comes with the repo, as the wrapper.
 
 ```bash
 sdk env install      # Java 25 (Temurin) via sdkman, pinned in .sdkmanrc
-./mvnw install       # build everything : bom → parent → starters → sample-service
+
+./mvnw test          # fast lane : the whole reactor, no Docker, ~10s
+./mvnw install       # full lane : + *IT (needs Docker), + coverage, and into ~/.m2
 ./format.sh          # apply the formatting law (spotless) on every governed module
 
 # the local dev loop : sample-service + a MongoDB container + the auto-load seed
-./mvnw -pl sample-service spring-boot:test-run
+./mvnw -pl sample-service -am spring-boot:test-run
 ```
 
 The dev loop is powered by
 [`RunWithTestcontainers`](./sample-service/src/test/java/com/vspiewak/sample/RunWithTestcontainers.java) —
 `spring-boot:test-run` boots the app from test sources, so the Testcontainers MongoDB and the
-`local` profile come along for free.
+`local` profile come along for free. The `-am` is not decoration : `-pl` alone would look for the
+starters in `~/.m2`, and they only land there once `./mvnw install` has run. It comes up on `http://localhost:8080` :
 
-## Boot 4 field notes 📓
+| Endpoint | What you get |
+|---|---|
+| `GET /orders/v1/orders` | every order — the seed seen in `src/test/resources/mongo/import/orders/` |
+| `GET /orders/v1/orders/{orderId}` | one order, or a `404` |
+| `GET /actuator/health` | the deploy probe — `UP` |
+| `GET /actuator/httpexchanges` | the flight recorder : the requests you just made |
+
+The last two are exposed by `service-starter`'s defaults — the service's own `application.yaml`
+never mentions them.
+
+## ⚙️ Continuous integration
+
+[`.github/workflows/build.yml`](./.github/workflows/build.yml) runs **the full lane**, on every push
+to `main` and on every pull request : Temurin 25 with a Maven cache, then `./mvnw -ntp verify` —
+formatting law, style rules, version mandate, both test lanes against real containers (GitHub's
+runners ship Docker), coverage. No separate lint job, no separate test job : the paved road is one
+command, and CI runs exactly the command you run locally. The badge at the top of this README is
+that workflow.
+
+## 📓 Boot 4 field notes
 
 Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
 
@@ -305,7 +389,7 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
   bean from an `@AutoConfiguration` must order itself `beforeName` both — a plain `@Configuration`
   (evaluated before all auto-configuration) never needed to care.
 
-## At work vs here
+## ⚖️ At work vs here
 
 | | At work | This repo |
 |---|---|---|
