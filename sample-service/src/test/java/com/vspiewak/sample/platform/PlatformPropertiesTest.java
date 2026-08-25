@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
@@ -27,6 +28,60 @@ class PlatformPropertiesTest {
       // the service does not configure endpoint exposure → the platform default applies
       assertThat(environment.getProperty("management.endpoints.web.exposure.include"))
           .isEqualTo("health,info,httpexchanges");
+    }
+
+    @Test
+    void everyServiceGetsThePlatformBannerWithoutAskingForIt() {
+      assertThat(environment.getProperty("spring.banner.location"))
+          .isEqualTo("classpath:platform-banner.txt");
+    }
+
+    @Test
+    void everyServiceLogsInThePlatformShape() {
+      // the platform decides the line : app name in, PID and '---' out
+      assertThat(environment.getProperty("logging.pattern.console"))
+          .contains("APPLICATION_NAME")
+          .doesNotContain("${PID:");
+    }
+
+    @Test
+    void theBootConventionIsLeftAlone() {
+      // deliberately NOT set : a service dropping its own logback-spring.xml is still picked up,
+      // which setting logging.config would have silently disabled
+      assertThat(environment.getProperty("logging.config")).isNull();
+    }
+
+    @Test
+    void andTheChattyDependenciesAreAlreadyQuiet() {
+      // proof the shipped logback config actually took effect, not just that the property is set
+      var driver = LoggerFactory.getLogger("org.mongodb.driver");
+      assertThat(driver.isWarnEnabled()).isTrue();
+      assertThat(driver.isInfoEnabled()).isFalse();
+    }
+  }
+
+  @Nested
+  @SpringBootTest(properties = "logging.level.org.mongodb.driver=DEBUG")
+  class ServiceOverLogLevels {
+
+    @Test
+    void aServiceDebuggingItsDriverWinsOverTheShippedConfig() {
+      // levels are defaults, not mandates : logging.level.* is applied after the config is loaded
+      assertThat(LoggerFactory.getLogger("org.mongodb.driver").isDebugEnabled()).isTrue();
+    }
+  }
+
+  @Nested
+  @SpringBootTest(properties = "spring.banner.location=classpath:my-own-banner.txt")
+  class ServiceOverBanner {
+
+    @Autowired private Environment environment;
+
+    @Test
+    void aServiceThatWantsItsOwnBannerKeepsIt() {
+      // the banner is a default, not a mandate — the road is paved, not fenced
+      assertThat(environment.getProperty("spring.banner.location"))
+          .isEqualTo("classpath:my-own-banner.txt");
     }
   }
 

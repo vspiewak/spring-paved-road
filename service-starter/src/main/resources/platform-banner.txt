@@ -1,0 +1,12 @@
+
+${AnsiColor.BRIGHT_GREEN}██████╗  █████╗ ██╗   ██╗███████╗██████╗   ██████╗  ██████╗  █████╗ ██████╗
+${AnsiColor.BRIGHT_GREEN}██╔══██╗██╔══██╗██║   ██║██╔════╝██╔══██╗  ██╔══██╗██╔═══██╗██╔══██╗██╔══██╗
+${AnsiColor.BRIGHT_GREEN}██████╔╝███████║██║   ██║█████╗  ██║  ██║  ██████╔╝██║   ██║███████║██║  ██║
+${AnsiColor.BRIGHT_GREEN}██╔═══╝ ██╔══██║╚██╗ ██╔╝██╔══╝  ██║  ██║  ██╔══██╗██║   ██║██╔══██║██║  ██║
+${AnsiColor.BRIGHT_GREEN}██║     ██║  ██║ ╚████╔╝ ███████╗██████╔╝  ██║  ██║╚██████╔╝██║  ██║██████╔╝
+${AnsiColor.BRIGHT_GREEN}╚═╝     ╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═════╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝
+${AnsiColor.BRIGHT_BLACK}  ──     ──     ──     ──     ──     ──     ──     ──     ──     ──   
+
+${AnsiColor.DEFAULT} :: service   ::   ${spring.application.name}
+${AnsiColor.DEFAULT} :: runtime   ::   Java ${java.version} · Spring Boot ${spring-boot.version}
+

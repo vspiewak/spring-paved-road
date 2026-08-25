@@ -175,6 +175,53 @@ Proven by [`HttpExchangeConfigTest`](./service-starter/src/test/java/com/vspiewa
 [`HttpExchangesIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/HttpExchangesIT.java) :
 make a request, find it in `/actuator/httpexchanges`.
 
+### 🪧 What a service inherits without asking
+
+The default layer is not theoretical — two concrete things ride on it, and no service configures
+either. First, identity : the platform ships
+[`platform-banner.txt`](./service-starter/src/main/resources/platform-banner.txt) and points
+`spring.banner.location` at it.
+
+![sample-service printing the platform banner as it boots](./docs/images/platform-banner.png)
+
+Then the shape of every line that service will ever log :
+
+```yaml
+logging:
+  level:
+    root: "INFO"
+    org.mongodb.driver: "WARN"
+    org.apache.catalina: "WARN"
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(%5p) %clr(%esb(){APPLICATION_NAME}){blue} ..."
+```
+
+```text
+2026-08-26T00:07:04.894+02:00  INFO [sample-service]  c.v.sample.SampleServiceApplication : Starting SampleServiceApplication
+```
+
+Boot's PID and `---` are gone, and the service name is in — on the banner and on every log line
+alike. It can never be blank, because `conventions-starter` already fails the build of a service
+that leaves `spring.application.name` unset : two starters, one guarantee. Quieting
+`org.mongodb.driver` and `org.apache.catalina` takes a bare `sample-service` boot from **15 log
+lines to 11** — the same trick Boot plays in its own `defaults.xml`, applied to the dependencies
+*this* fleet happens to have.
+
+Both are **defaults**, so both bend : a service that wants its own banner sets
+`spring.banner.location`, one that needs the driver's chatter sets
+`logging.level.org.mongodb.driver: DEBUG`, and each of them wins.
+
+What the platform deliberately does **not** set is `logging.config`. Pointing it at a starter-owned
+`logback.xml` would let the platform own appenders outright — and would silently ignore the
+`logback-spring.xml` a service dropped in `src/main/resources`, with no error to explain the
+silence. Leaving it unset keeps every override loud and conventional : `logging.level.*` wins
+because Boot applies it *after* the config loads, and a service that outgrows the defaults writes an
+ordinary `logback-spring.xml` and is simply obeyed. All of it proven in
+[`PlatformPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/platform/PlatformPropertiesTest.java).
+
+The day a fleet needs real appenders — async, rotation, a custom converter — that is the moment to
+ship an XML and take the trade. Not before.
+
 ## 🥭 `mongo-starter` — seeded locally, named everywhere
 
 How every service talks to MongoDB : a local dev loop that seeds itself, and connections that
@@ -324,14 +371,16 @@ sdk env install      # Java 25 (Temurin) via sdkman, pinned in .sdkmanrc
 ./format.sh          # apply the formatting law (spotless) on every governed module
 
 # the local dev loop : sample-service + a MongoDB container + the auto-load seed
-./mvnw -pl sample-service -am spring-boot:test-run
+./mvnw -pl sample-service spring-boot:test-run
 ```
 
 The dev loop is powered by
 [`RunWithTestcontainers`](./sample-service/src/test/java/com/vspiewak/sample/RunWithTestcontainers.java) —
 `spring-boot:test-run` boots the app from test sources, so the Testcontainers MongoDB and the
-`local` profile come along for free. The `-am` is not decoration : `-pl` alone would look for the
-starters in `~/.m2`, and they only land there once `./mvnw install` has run. It comes up on `http://localhost:8080` :
+`local` profile come along for free. Mind the order of the block above : `-pl` resolves the starters
+from `~/.m2`, so `./mvnw install` has to have run once. Reaching for `-am` to skip that step does
+*not* work — `test-run` is a goal rather than a phase, so Maven runs it on every module in the
+reactor, and `parent` has no main class to run. It comes up on `http://localhost:8080` :
 
 | Endpoint | What you get |
 |---|---|
@@ -377,6 +426,11 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
 * Sharing one Testcontainer across several `@SpringBootTest` contexts means every context
   re-runs seeding into the same database — one container **per context**
   ([`Containers`](./sample-service/src/test/java/com/vspiewak/sample/Containers.java)) keeps tests honest.
+* **Structured logging went declarative.** Worth knowing for the migration, even though this repo
+  logs plain text : `logging.structured.format.console` takes `ecs`, `gelf` or `logstash`, and
+  `logging.structured.json.add / rename / include / exclude` reshape the JSON without a line of
+  Java — the `StructuredLogFormatter` you still write on Boot 3.5 becomes a few lines of yaml.
+  Beware : there is no plain `json` format id, only those three.
 * Mongo moved out of `data` : the auto-configuration now lives in
   `org.springframework.boot.mongodb.autoconfigure` (so `MongoClientSettingsBuilderCustomizer`
   imports change), and the properties renamed `spring.data.mongodb.*` → **`spring.mongodb.*`**.
