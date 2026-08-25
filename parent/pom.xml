@@ -80,6 +80,10 @@
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-failsafe-plugin</artifactId>
                <version>${maven-failsafe-plugin.version}</version>
+               <configuration>
+                  <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                  <argLine>@{argLine} -Dcucumber.plugin='pretty,html:target/site/cucumber/index.html'</argLine>
+               </configuration>
                <executions>
                   <execution>
                      <goals>
