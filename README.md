@@ -86,7 +86,7 @@ Every service inherits the same build by pointing at this parent, which **import
 * and the test **lanes** : surefire / failsafe split on the `*IT` suffix,
   [JaCoCo](https://www.jacoco.org) covering both
 
-The version mandate has the escape hatch that keeps it a paved road : groupIds on the allow-list
+The version mandate has one escape hatch : groupIds on the allow-list
 (`enforcer.versionOverride.allowedGroupIds`, here `com.vspiewak.dto`) may pin their own version —
 contract (DTO) artifacts evolve at the pace of their producer / consumer pair, not the fleet.
 Try it : add a `<version>` to any dependency in `sample-service`, and the build stops you at
@@ -104,20 +104,14 @@ the starters with `${project.version}` until the bom managed them.
 
 ![The fast lane : the whole reactor, unit & slice tests, in nine seconds without Docker](./docs/images/fast-lane.png)
 
-A paved road never just says *no*. When the formatting law is broken, the build prints the offending
-diff and the way out — and never asks you to work out the fix yourself :
+Break the formatting law and the build prints the offending diff and the fix :
 
 ![The build failing on a formatting violation, showing the diff and telling you to run spotless:apply](./docs/images/formatting-law.png)
 
-`./format.sh` is that `spotless:apply`, across every governed module at once. Its one piece of
-cleverness is the exclusion list : the bom and the root aggregator sit outside the parent chain, so
-a naive `spotless:apply` over the whole reactor resolves an **unpinned** spotless — 3.10.0 instead
-of the managed 3.9.0 — and then fails on the bom anyway. Staying inside the parent chain is what
-keeps even the ad-hoc invocation under the version mandate.
-
-Which makes the script a *monorepo* convenience, not a part of the paved road itself : a service
-that adopts the parent inherits the **enforcement**, and needs no script at all — `./mvnw
-spotless:apply`, exactly what the failure message already tells it to run.
+`./format.sh` runs that `spotless:apply` across every governed module, skipping the bom and the root
+aggregator : outside the parent chain, a naive `spotless:apply` resolves an **unpinned** spotless —
+3.10.0 instead of the managed 3.9.0 — and fails on the bom anyway. A service under the parent needs
+no script : `./mvnw spotless:apply`, as the failure message says.
 
 Three hard-earned details, all of them failsafe / JaCoCo :
 
@@ -175,16 +169,49 @@ Proven by [`HttpExchangeConfigTest`](./service-starter/src/test/java/com/vspiewa
 [`HttpExchangesIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/HttpExchangesIT.java) :
 make a request, find it in `/actuator/httpexchanges`.
 
+### 🚨 The error contract
+
+`spring.mvc.problemdetails.enabled` lives in the **override** layer — a mandate, so the fleet's
+error shape is not a per-service choice :
+
+```text
+before   application/json          {"timestamp","status","error","path"}
+after    application/problem+json  {"type","title","status","detail","instance"}
+```
+
+On top of it, `service-starter` ships a
+[`@ControllerAdvice`](./service-starter/src/main/java/com/vspiewak/pavedroad/web/PlatformProblemDetailAdvice.java)
+stamping each problem with its origin — the same `spring.application.name` that is on the banner and
+on every log line :
+
+```json
+{"instance":"/orders/v1/orders/999","status":404,"title":"Not Found","service":"sample-service"}
+```
+
+`traceId` joins it when the MDC has one. `type` stays `about:blank` until a service declares one
+under `problemDetail.type.<exception FQCN>`, which Spring resolves through the `MessageSource`.
+
+Proven in business language, in
+[`service.feature`](./sample-service/src/test/resources/features/service.feature) :
+
+```gherkin
+Scenario: Unknown orders are a 404, in the platform's error shape
+  When I send a GET request to "/orders/v1/orders/999"
+  Then the response status is 404
+  And the response content type is "application/problem+json"
+  And the response json path "$.title" is "Not Found"
+  And the response json path "$.service" is "sample-service"
+```
+
 ### 🪧 What a service inherits without asking
 
-The default layer is not theoretical — two concrete things ride on it, and no service configures
-either. First, identity : the platform ships
-[`platform-banner.txt`](./service-starter/src/main/resources/platform-banner.txt) and points
-`spring.banner.location` at it.
+Two things ride on the default layer, and no service configures either. Identity — the platform
+ships [`platform-banner.txt`](./service-starter/src/main/resources/platform-banner.txt) and points
+`spring.banner.location` at it :
 
 ![sample-service printing the platform banner as it boots](./docs/images/platform-banner.png)
 
-Then the shape of every line that service will ever log :
+And the shape of every line that service will ever log :
 
 ```yaml
 logging:
@@ -200,27 +227,14 @@ logging:
 2026-08-26T00:07:04.894+02:00  INFO [sample-service]  c.v.sample.SampleServiceApplication : Starting SampleServiceApplication
 ```
 
-Boot's PID and `---` are gone, and the service name is in — on the banner and on every log line
-alike. It can never be blank, because `conventions-starter` already fails the build of a service
-that leaves `spring.application.name` unset : two starters, one guarantee. Quieting
-`org.mongodb.driver` and `org.apache.catalina` takes a bare `sample-service` boot from **15 log
-lines to 11** — the same trick Boot plays in its own `defaults.xml`, applied to the dependencies
-*this* fleet happens to have.
+Boot's PID and `---` are gone, the service name is in, and quieting those two dependencies takes a
+bare `sample-service` boot from **15 log lines to 11**.
 
-Both are **defaults**, so both bend : a service that wants its own banner sets
-`spring.banner.location`, one that needs the driver's chatter sets
-`logging.level.org.mongodb.driver: DEBUG`, and each of them wins.
-
-What the platform deliberately does **not** set is `logging.config`. Pointing it at a starter-owned
-`logback.xml` would let the platform own appenders outright — and would silently ignore the
-`logback-spring.xml` a service dropped in `src/main/resources`, with no error to explain the
-silence. Leaving it unset keeps every override loud and conventional : `logging.level.*` wins
-because Boot applies it *after* the config loads, and a service that outgrows the defaults writes an
+Both are **defaults**, so both bend : `spring.banner.location` for a service that wants its own
+banner, `logging.level.org.mongodb.driver: DEBUG` for one that needs the driver's chatter — each
+wins. `logging.config` is deliberately left unset, so a service that outgrows the defaults writes an
 ordinary `logback-spring.xml` and is simply obeyed. All of it proven in
 [`PlatformPropertiesTest`](./sample-service/src/test/java/com/vspiewak/sample/platform/PlatformPropertiesTest.java).
-
-The day a fleet needs real appenders — async, rotation, a custom converter — that is the moment to
-ship an XML and take the trade. Not before.
 
 ## 🥭 `mongo-starter` — seeded locally, named everywhere
 
@@ -299,9 +313,8 @@ so a scenario only ever sees what it seeds.
 
 The `*IT` suffix puts the whole suite in the failsafe lane : `./mvnw test` stays Docker-free.
 
-The vocabulary here is deliberately minimal — every step the starter ships is exercised by the
-sample features. The work version carries the full set (composed request bodies & headers, POST,
-JSON fixture matchers) ; the pattern is the point, not the library.
+Every step the starter ships is exercised by the sample features. The work version carries the full
+set : composed request bodies & headers, POST, JSON fixture matchers.
 
 ## 👮 `conventions-starter` — conventions as executable law
 
@@ -377,10 +390,10 @@ sdk env install      # Java 25 (Temurin) via sdkman, pinned in .sdkmanrc
 The dev loop is powered by
 [`RunWithTestcontainers`](./sample-service/src/test/java/com/vspiewak/sample/RunWithTestcontainers.java) —
 `spring-boot:test-run` boots the app from test sources, so the Testcontainers MongoDB and the
-`local` profile come along for free. Mind the order of the block above : `-pl` resolves the starters
-from `~/.m2`, so `./mvnw install` has to have run once. Reaching for `-am` to skip that step does
-*not* work — `test-run` is a goal rather than a phase, so Maven runs it on every module in the
-reactor, and `parent` has no main class to run. It comes up on `http://localhost:8080` :
+`local` profile come along for free. Mind the order above : `-pl` resolves the starters from
+`~/.m2`, so `./mvnw install` has to have run once — and `-am` is no substitute, `test-run` being a
+goal rather than a phase, which Maven would then run on `parent` too. It comes up on
+`http://localhost:8080` :
 
 | Endpoint | What you get |
 |---|---|
@@ -397,9 +410,8 @@ never mentions them.
 [`.github/workflows/build.yml`](./.github/workflows/build.yml) runs **the full lane**, on every push
 to `main` and on every pull request : Temurin 25 with a Maven cache, then `./mvnw -ntp verify` —
 formatting law, style rules, version mandate, both test lanes against real containers (GitHub's
-runners ship Docker), coverage. No separate lint job, no separate test job : the paved road is one
-command, and CI runs exactly the command you run locally. The badge at the top of this README is
-that workflow.
+runners ship Docker), coverage — one command, the same one you run locally. The badge at the top of
+this README is that workflow.
 
 ## 📓 Boot 4 field notes
 
