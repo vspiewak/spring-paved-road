@@ -38,6 +38,12 @@ public class HttpSteps {
     assertThat(response.getStatus().value()).isEqualTo(expectedStatus);
   }
 
+  @Then("the response content type is {string}")
+  public void theResponseContentTypeIs(String expectedContentType) {
+    assertThat(String.valueOf(response.getResponseHeaders().getContentType()))
+        .startsWith(expectedContentType);
+  }
+
   @Then("the response json path {string} is {string}")
   public void theResponseJsonPathIsString(String jsonPath, String expected) {
     Object value = JsonPath.read(response.getResponseBody(), jsonPath);

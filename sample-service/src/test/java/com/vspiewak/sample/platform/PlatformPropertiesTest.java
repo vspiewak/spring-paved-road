@@ -112,6 +112,19 @@ class PlatformPropertiesTest {
   }
 
   @Nested
+  @SpringBootTest(properties = "spring.mvc.problemdetails.enabled=false")
+  class ServiceUnderTheErrorContract {
+
+    @Autowired private Environment environment;
+
+    @Test
+    void aServiceCannotOptOutOfTheErrorContract() {
+      // the error shape is what fleet consumers parse — it is not the service's to choose
+      assertThat(environment.getProperty("spring.mvc.problemdetails.enabled")).isEqualTo("true");
+    }
+  }
+
+  @Nested
   @SpringBootTest
   @ActiveProfiles("dev")
   class ProfileOverrides {

@@ -17,8 +17,12 @@ Feature: Orders API
     Then the response status is 200
     And the response json path "$.amount" is "7"
 
-  Scenario: Unknown orders are a 404
+  Scenario: Unknown orders are a 404, in the platform's error shape
     When I send a GET request to "/orders/v1/orders/999"
     Then the response status is 404
+    And the response content type is "application/problem+json"
     And the response json path "$.status" is "404"
+    And the response json path "$.title" is "Not Found"
+    And the response json path "$.instance" is "/orders/v1/orders/999"
+    And the response json path "$.service" is "sample-service"
 
