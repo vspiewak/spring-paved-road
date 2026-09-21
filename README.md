@@ -4,9 +4,9 @@
 
 **The paved road : parent, BOM & Spring Boot starters that align a whole fleet — distilled into one runnable monorepo.**
 
-At work, these patterns govern ~100 Spring Boot microservices maintained by ~80 engineers :
-one `<parent>` line in a service's pom, and it inherits version coherence, formatting law,
-style rules and platform behavior. This repo is the pattern, extracted and runnable.
+At work, ~80 Spring Boot services and the ~30 engineers who build them are moving onto these
+patterns : one `<parent>` line in a service's pom, and it inherits version coherence, formatting
+law, style rules and platform behavior. This repo is the pattern, extracted and runnable.
 
 📝 The story so far : [migrating 1,273 repos in under an hour](https://vspiewak.com/migrating-1200-repos-from-bitbucket-to-github-in-under-an-hour) ·
 [27,000+ PRs with gh-auto-updater](https://vspiewak.com/gh-auto-updater-mass-pull-requests-across-a-repo-fleet) — more on [vspiewak.com](https://vspiewak.com)
@@ -461,6 +461,6 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
 |---|---|---|
 | Repos | ~10, independent releases, CODEOWNERS | one reactor, for your cloning pleasure |
 | Platform | Java 21 · Spring Boot 3.5 | Java 25 · Spring Boot 4.1 |
-| Fleet | ~100 services, ~80 engineers | one sample service — yours to fork |
+| Fleet | ~80 services, ~30 engineers | one sample service — yours to fork |
 
 Same patterns, two platform generations apart — that's rather the point 😉
