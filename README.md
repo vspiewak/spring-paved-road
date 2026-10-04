@@ -114,6 +114,22 @@ goal rather than a phase, which Maven would then run on `parent` too. It comes u
 The last two are exposed by `service-starter`'s defaults — the service's own `application.yaml`
 never mentions them.
 
+To see those requests as traces, start [Jaeger](https://www.jaegertracing.io) and point the dev loop
+at it — the export is plain OTLP :
+
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:1.62.0
+
+./mvnw -pl sample-service spring-boot:test-run \
+  -Dspring-boot.run.arguments="--management.opentelemetry.tracing.export.otlp.endpoint=http://localhost:4318/v1/traces"
+
+curl localhost:8080/orders/v1/orders/2   # in another terminal : a request to trace
+open http://localhost:16686              # the Jaeger UI (xdg-open on Linux) → service sample-service
+```
+
+Spans are exported in batches, so give it a few seconds. What you'll find there is described in
+[`service-starter`](./service-starter/README.md#-traces-end-to-end) ; `docker rm -f jaeger` when done.
+
 ## ⚙️ Continuous integration
 
 [`.github/workflows/build.yml`](./.github/workflows/build.yml) runs **the full lane**, on every push
