@@ -25,11 +25,11 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
 * Sharing one Testcontainer across several `@SpringBootTest` contexts means every context
   re-runs seeding into the same database — one container **per context**
   ([`Containers`](../sample-service/src/test/java/com/vspiewak/sample/Containers.java)) keeps tests honest.
-* **Structured logging went declarative.** Worth knowing for the migration, even though this repo
-  logs plain text : `logging.structured.format.console` takes `ecs`, `gelf` or `logstash`, and
-  `logging.structured.json.add / rename / include / exclude` reshape the JSON without a line of
-  Java — the `StructuredLogFormatter` you still write on Boot 3.5 becomes a few lines of yaml.
-  Beware : there is no plain `json` format id, only those three.
+* **Structured logging needs no Java** — not new in Boot 4, but worth knowing before porting a
+  hand-written `StructuredLogFormatter` : `logging.structured.format.console` takes `ecs`, `gelf` or
+  `logstash`, and `logging.structured.json.add / rename / include / exclude` reshape the JSON from
+  yaml. Those keys already ship with Boot 3.5. Beware : there is no plain `json` format id, only
+  those three.
 * Mongo moved out of `data` : the auto-configuration now lives in
   `org.springframework.boot.mongodb.autoconfigure` (so `MongoClientSettingsBuilderCustomizer`
   imports change), and the properties renamed `spring.data.mongodb.*` → **`spring.mongodb.*`**.
