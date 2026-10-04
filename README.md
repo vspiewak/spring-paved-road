@@ -39,7 +39,7 @@ The whole pitch fits in one diff. A service pom, before and after :
 | [`bom/`](./bom) | Versions, decided once — services never write a `<version>` again |
 | [`parent/`](./parent) | The build, decided once — plugins, formatting law, style rules, test lanes |
 | [`service‑starter/`](./service-starter) | Sane defaults & platform mandates, shipped as a dependency |
-| [`mongo‑starter/`](./mongo-starter) | The MongoDB defaults every service wants — self-seeding local dev, self-identifying connections |
+| [`mongo‑starter/`](./mongo-starter) | The MongoDB defaults every service wants — self-seeding local dev, self-identifying connections, traced queries |
 | [`cucumber‑starter/`](./cucumber-starter) | The BDD vocabulary, written once — services write features, not glue |
 | [`conventions‑starter/`](./conventions-starter) | The conventions, as tests that fail the build instead of review comments |
 | [`sample‑service/`](./sample-service) | The proof — one service consuming all of it, **the tests are the documentation** |
@@ -134,8 +134,8 @@ Gherkin run in `cucumber/index.html`.
 
 How every service behaves at runtime : sane defaults, platform mandates, auto-configured beans.
 Both Boot extension points on display — an `EnvironmentPostProcessor` registered in
-`spring.factories` (the property ladder) and an `@AutoConfiguration` registered in
-`AutoConfiguration.imports` (the flight recorder).
+`spring.factories` (the property ladder) and `@AutoConfiguration`s registered in
+`AutoConfiguration.imports` (the flight recorder, the tracing).
 
 ### 🪜 The property ladder
 
@@ -203,6 +203,48 @@ Scenario: Unknown orders are a 404, in the platform's error shape
   And the response json path "$.service" is "sample-service"
 ```
 
+### 🔭 Traces, end to end
+
+Boot already does the heavy lifting once tracing is on the classpath : a span per request, W3C
+`traceparent` propagation, OTLP export as soon as `management.opentelemetry.tracing.export.otlp.endpoint`
+is set. `service-starter` puts it on the classpath, then makes the calls Boot leaves to each service :
+
+* **sample everything** — `management.tracing.sampling.probability: 1.0` (Boot's default is `0.1`), a default
+* **`@Observed` on** — `management.observations.annotations.enabled: true`, with AspectJ shipped
+* **trace ids on every log line** — `%correlationId` in the platform's console pattern, and in the
+  error contract's `traceId`
+* **health probes stay out of it** — [`TracingConfig`](./service-starter/src/main/java/com/vspiewak/pavedroad/tracing/TracingConfig.java)
+  drops actuator requests *and everything they cause* : drop only the request, and the database calls
+  of its health indicators come back as orphan root traces, one per probe. Opt back in with
+  `platform.tracing.actuator.enabled=true`
+
+One request, one trace — `sample-service` with `platform.tracing.exporter.logging.enabled=true`,
+which prints each span to the console the moment it ends, no collector needed :
+
+```text
+[f647ad56...-476a60f2...] LoggingSpanExporter : 'find' : f647ad56... CLIENT
+[f647ad56...-476a60f2...] LoggingSpanExporter : 'find test.orders' : f647ad56... CLIENT
+[f647ad56...-476a60f2...] LoggingSpanExporter : 'OrderService#findAll' : f647ad56... INTERNAL
+[                       ] LoggingSpanExporter : 'http get /orders/v1/orders' : f647ad56... SERVER
+```
+
+Or a real waterfall — the transport is plain OTLP, so any collector will do :
+
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:1.62.0
+./mvnw -pl sample-service spring-boot:test-run \
+  -Dspring-boot.run.arguments="--management.opentelemetry.tracing.export.otlp.endpoint=http://localhost:4318/v1/traces"
+```
+
+`curl localhost:8080/orders/v1/orders/2`, then http://localhost:16686 :
+
+![Jaeger showing one trace for GET /orders/v1/orders/{orderId} : the HTTP span, OrderService#findByOrderId, then the MongoDB driver's find test.orders operation and its find command, tagged with collection, command and connection ids](./docs/images/jaeger-trace.png)
+
+Proven by [`TracingConfigTest`](./service-starter/src/test/java/com/vspiewak/pavedroad/tracing/TracingConfigTest.java)
+and end-to-end by [`TracingIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/TracingIT.java),
+which captures every span in memory : HTTP → service → MongoDB parented as one trace, the 404's
+`traceId` is that trace's, and a health probe leaves nothing behind.
+
 ### 🪧 What a service inherits without asking
 
 Two things ride on the default layer, and no service configures either. Identity — the platform
@@ -238,8 +280,8 @@ ordinary `logback-spring.xml` and is simply obeyed. All of it proven in
 
 ## 🥭 `mongo-starter` — seeded locally, named everywhere
 
-How every service talks to MongoDB : a local dev loop that seeds itself, and connections that
-identify themselves.
+How every service talks to MongoDB : a local dev loop that seeds itself, connections that
+identify themselves, and queries that show up in the trace.
 
 ### 🌱 Local auto-load
 
@@ -279,6 +321,21 @@ Proven by [`MongoAppNameConfigTest`](./mongo-starter/src/test/java/com/vspiewak/
 including through Boot's **full** customizer chain, both directions. And end-to-end, server-side, by
 [`MongoAppNameIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/MongoAppNameIT.java) :
 the very connection running the `$currentOp` aggregation identifies itself as `sample-service`.
+
+### 🔎 Queries, traced
+
+Hands Boot's `ObservationRegistry` to the MongoDB driver's **own** tracing : every operation and
+the command it sends become spans, children of the request or `@Observed` method that issued them —
+the `find test.orders` / `find` pair in the trace above.
+
+* the driver's native support (5.7+), not Spring Data's `MongoObservationCommandListener` — the usual
+  Boot 3 answer, now deprecated for removal in its favor
+* command payloads stay out : query values never reach a span
+* a service defining its own `mongoTracingCustomizer` bean replaces it (`@ConditionalOnMissingBean`)
+* kill switch : `platform.mongo.tracing.enabled=false`
+
+Proven by [`MongoTracingConfigTest`](./mongo-starter/src/test/java/com/vspiewak/pavedroad/mongo/MongoTracingConfigTest.java),
+and end-to-end by the same [`TracingIT`](./sample-service/src/test/java/com/vspiewak/sample/platform/TracingIT.java).
 
 ## 🥒 `cucumber-starter` — BDD, the shared vocabulary
 
@@ -454,6 +511,17 @@ Building this on Spring Boot 4.1 / Java 25 surfaced real migration intel :
   auto-configurations are `@ConditionalOnBean(HttpExchangeRepository)`, a starter providing that
   bean from an `@AutoConfiguration` must order itself `beforeName` both — a plain `@Configuration`
   (evaluated before all auto-configuration) never needed to care.
+
+* Tracing went modular and renamed : `spring-boot-micrometer-tracing-opentelemetry` holds the
+  auto-configuration, and the OTLP keys moved `management.otlp.tracing.*` →
+  **`management.opentelemetry.tracing.export.otlp.*`** (the old ones are deprecated). The
+  all-in-one `spring-boot-starter-opentelemetry` also ships the OTLP *metrics* registry — we take the
+  three tracing jars instead. And in tests, tracing stays off until `@AutoConfigureTracing`
+  (`spring-boot-micrometer-tracing-test`).
+* MongoDB traces itself now : driver 5.7+ takes an `ObservationRegistry` in `MongoClientSettings`, and
+  Spring Data 5.1 deprecates its `MongoObservationCommandListener` for removal. One catch : the driver
+  fills the command name in *after* the observation is created, so an `ObservationPredicate` can no
+  longer filter `hello` / `ping` by name — filter by what caused them instead.
 
 ## ⚖️ At work vs here
 

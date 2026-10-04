@@ -9,8 +9,14 @@ logging:
     org.apache.catalina: "WARN"
   pattern:
     console: "%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(%5p) %clr(%esb(){APPLICATION_NAME}){blue}\
-      \ %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+      \ %correlationId%clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
 management:
+  tracing:
+    sampling:
+      probability: 1.0
+  observations:
+    annotations:
+      enabled: true
   endpoints:
     web:
       exposure:

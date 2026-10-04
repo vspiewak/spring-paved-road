@@ -1,2 +1,3 @@
 com.vspiewak.pavedroad.mongo.MongoAppNameConfig
 com.vspiewak.pavedroad.mongo.MongoDataImporter
+com.vspiewak.pavedroad.mongo.MongoTracingConfig

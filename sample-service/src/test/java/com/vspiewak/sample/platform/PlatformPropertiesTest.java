@@ -38,9 +38,10 @@ class PlatformPropertiesTest {
 
     @Test
     void everyServiceLogsInThePlatformShape() {
-      // the platform decides the line : app name in, PID and '---' out
+      // the platform decides the line : app name and trace ids in, PID and '---' out
       assertThat(environment.getProperty("logging.pattern.console"))
           .contains("APPLICATION_NAME")
+          .contains("%correlationId")
           .doesNotContain("${PID:");
     }
 
