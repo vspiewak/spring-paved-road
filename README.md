@@ -44,24 +44,10 @@ The whole pitch fits in one diff. A service pom, before and after :
 | 👮 [`conventions‑starter/`](./conventions-starter) | The conventions, as tests that fail the build instead of review comments |
 | 🧪 [`sample‑service/`](./sample-service) | The proof — one service consuming all of it, **the tests are the documentation** |
 
-```mermaid
-flowchart TD
-    bom["<b>bom</b><br/>versions, decided once"]
-    parent["<b>parent</b><br/>the build, decided once"]
-    subgraph starters ["the starters — platform behavior, shipped as dependencies"]
-        direction LR
-        ss["service-starter"]
-        ms["mongo-starter"]
-        cs["cucumber-starter"]
-        cv["conventions-starter"]
-    end
-    sample["<b>sample-service</b><br/>the proof"]
-
-    bom -->|"import scope"| parent
-    parent -->|"parent of"| starters
-    parent -->|"parent of"| sample
-    starters -->|"dependency of"| sample
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/modules-dark.png">
+  <img alt="bom is imported by parent ; parent is the parent of the starters (service, mongo, cucumber, conventions) and of sample-service, which depends on the starters" src="./docs/images/modules-light.png">
+</picture>
 
 ## ✨ What a service gets
 

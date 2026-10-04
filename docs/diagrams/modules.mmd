@@ -1,0 +1,12 @@
+%% Source of docs/images/modules-{light,dark}.png — regenerate with docs/diagrams/render.sh
+%%{init: {"flowchart": {"wrappingWidth": 400}}}%%
+flowchart LR
+    bom["<b>bom</b><br/>versions, decided once"]
+    parent["<b>parent</b><br/>the build, decided once"]
+    starters["<b>the starters</b><br/>platform behavior, as dependencies<br/><br/>service-starter · mongo-starter<br/>cucumber-starter · conventions-starter"]
+    sample["<b>sample-service</b><br/>the proof"]
+
+    bom -->|"import scope"| parent
+    parent -->|"parent of"| starters
+    parent -->|"parent of"| sample
+    starters -->|"dependency of"| sample
