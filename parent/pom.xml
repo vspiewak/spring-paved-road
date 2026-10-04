@@ -51,6 +51,16 @@
                <groupId>org.springframework.boot</groupId>
                <artifactId>spring-boot-maven-plugin</artifactId>
                <version>${spring-boot.version}</version>
+               <!-- bound here, activated by the services only : a starter repackaged into an
+                    executable jar is no longer a library its consumers can depend on -->
+               <executions>
+                  <execution>
+                     <id>repackage</id>
+                     <goals>
+                        <goal>repackage</goal>
+                     </goals>
+                  </execution>
+               </executions>
             </plugin>
 
             <plugin>
@@ -279,11 +289,6 @@
       </pluginManagement>
 
       <plugins>
-
-         <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-         </plugin>
 
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>

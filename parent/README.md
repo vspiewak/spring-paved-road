@@ -15,6 +15,11 @@ Every service inherits the same build by pointing at this parent, which **import
   any dependency declaring a `<version>` — versions come from the bom, period
 * and the test **lanes** : surefire / failsafe split on the `*IT` suffix,
   [JaCoCo](https://www.jacoco.org) covering both
+* the **executable jar** : `spring-boot:repackage` is bound in `pluginManagement` and switched on by
+  the service alone, declaring `spring-boot-maven-plugin` as every start.spring.io pom already does —
+  activated in the parent, it would turn the starters into jars nobody can depend on. Proven by
+  [`ExecutableJarIT`](../sample-service/src/test/java/com/vspiewak/sample/platform/ExecutableJarIT.java),
+  which opens the jar the build just produced
 
 The version mandate has one escape hatch : groupIds on the allow-list
 (`enforcer.versionOverride.allowedGroupIds`, here `com.vspiewak.dto`) may pin their own version —
