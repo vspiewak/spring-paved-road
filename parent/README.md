@@ -9,8 +9,8 @@ Every service inherits the same build by pointing at this parent, which **import
 * the formatting law : [Spotless](https://github.com/diffplug/spotless) with google-java-format,
   sortPom, yaml & markdown — `spotless:check` runs at **`compile`**, so a formatting slip fails
   the build in *both* lanes, and `./format.sh` is the one command that fixes it
-* a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset — the interesting rules live in
-  `conventions-starter`, as tests
+* a deliberately tiny [Checkstyle](https://checkstyle.org) ruleset, for what only exists in the
+  source — the interesting rules live in `conventions-starter`, as tests
 * the **version mandate** : [maven-enforcer](https://maven.apache.org/enforcer/) fails the build on
   any dependency declaring a `<version>` — versions come from the bom, period
 * and the test **lanes** : surefire / failsafe split on the `*IT` suffix,
@@ -47,6 +47,48 @@ Break the formatting law and the build prints the offending diff and the fix :
 aggregator : outside the parent chain, a naive `spotless:apply` resolves an **unpinned** spotless —
 3.10.0 instead of the managed 3.9.0 — and fails on the bom anyway. A service under the parent needs
 no script : `./mvnw spotless:apply`, as the failure message says.
+
+Checkstyle stays small on purpose. The code-shape rules — layering, naming, no `System.out` — are
+ArchUnit tests in [`conventions-starter`](../conventions-starter), where a service can read and extend
+them. But ArchUnit reads bytecode, and some mistakes don't survive compilation : comments, empty
+blocks, the shape of an expression. Those four are Checkstyle's, at `process-classes` :
+
+```xml
+<module name="EmptyCatchBlock">                  <!-- unless it says why : "This is expected" -->
+  <property name="commentFormat" value="This is expected" />
+</module>
+<module name="TodoComment">                      <!-- a FIXME does not ship -->
+  <property name="format" value="FIXME" />
+</module>
+<module name="StringLiteralEquality" />          <!-- status == "OK" : true until it isn't -->
+<module name="InnerAssignment" />                <!-- if (done = true) : compiles, always true -->
+```
+
+Try it : make this the body of `OrderService.findByOrderId` and build —
+
+```java
+// FIXME : cache this
+if (orderId == "latest") {
+  return Optional.empty();
+}
+var order = repository.findByOrderId(orderId);
+boolean missing = order.isEmpty();
+if (missing = true) {
+  try {
+    Thread.sleep(1);
+  } catch (InterruptedException e) {
+  }
+}
+return order;
+```
+
+```text
+[WARNING] src/main/java/.../OrderService.java:[23,7] (misc) TodoComment: Comment matches to-do format 'FIXME'.
+[WARNING] src/main/java/.../OrderService.java:[24,17] (coding) StringLiteralEquality: Literal Strings should be compared using equals(), not '=='.
+[WARNING] src/main/java/.../OrderService.java:[29,17] (coding) InnerAssignment: Inner assignments should be avoided.
+[WARNING] src/main/java/.../OrderService.java:[32,40] (blocks) EmptyCatchBlock: Empty catch block.
+[ERROR] Failed to execute goal ...maven-checkstyle-plugin:3.6.0:check (default) on project sample-service: You have 4 Checkstyle violations.
+```
 
 Three hard-earned details, all of them failsafe / JaCoCo :
 

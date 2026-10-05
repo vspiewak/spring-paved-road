@@ -197,7 +197,8 @@
                   <failOnViolation>true</failOnViolation>
                   <violationSeverity>warning</violationSeverity>
                   <includeTestSourceDirectory>false</includeTestSourceDirectory>
-                  <!-- a tiny ruleset -->
+                  <!-- a tiny ruleset, for what only exists in the source : ArchUnit sees bytecode,
+                       where comments, empty blocks and expression shapes are gone -->
                   <checkstyleRules>
                      <module name="Checker">
                         <property name="charset" value="UTF-8" />
@@ -206,6 +207,11 @@
                            <module name="EmptyCatchBlock">
                               <property name="commentFormat" value="This is expected" />
                            </module>
+                           <module name="TodoComment">
+                              <property name="format" value="FIXME" />
+                           </module>
+                           <module name="StringLiteralEquality" />
+                           <module name="InnerAssignment" />
                         </module>
                      </module>
                   </checkstyleRules>
