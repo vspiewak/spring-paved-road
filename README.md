@@ -36,13 +36,13 @@ The whole pitch fits in one diff. A service pom, before and after :
 
 | Module | Role |
 |---|---|
-| 📌 [`bom/`](./bom) | Versions, decided once — services never write a `<version>` again |
-| 🏗️ [`parent/`](./parent) | The build, decided once — plugins, formatting law, style rules, test lanes |
-| 🍃 [`service‑starter/`](./service-starter) | Sane defaults & platform mandates, shipped as a dependency |
-| 🥭 [`mongo‑starter/`](./mongo-starter) | The MongoDB defaults every service wants — self-seeding local dev, self-identifying connections, traced queries |
-| 🥒 [`cucumber‑starter/`](./cucumber-starter) | The BDD vocabulary, written once — services write features, not glue |
-| 👮 [`conventions‑starter/`](./conventions-starter) | The conventions, as tests that fail the build instead of review comments |
-| 🧪 [`sample‑service/`](./sample-service) | The proof — one service consuming all of it, **the tests are the documentation** |
+| 📌 [`bom`](./bom) | Versions, decided once — services never write a `<version>` again |
+| 🏗️ [`parent`](./parent) | The build, decided once — plugins, formatting law, style rules, test lanes |
+| 🍃 [`service‑starter`](./service-starter) | Sane defaults & platform mandates, shipped as a dependency |
+| 🥭 [`mongo‑starter`](./mongo-starter) | The MongoDB defaults every service wants — self-seeding local dev, self-identifying connections, traced queries |
+| 🥒 [`cucumber‑starter`](./cucumber-starter) | The BDD vocabulary, written once — services write features, not glue |
+| 👮 [`conventions‑starter`](./conventions-starter) | The conventions, as tests that fail the build instead of review comments |
+| 🧪 [`sample‑service`](./sample-service) | The proof — one service consuming all of it, **the tests are the documentation** |
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/modules-dark.png">
