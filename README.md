@@ -56,8 +56,9 @@ tests that prove them.
 
 **The build** — [`bom`](./bom) · [`parent`](./parent)
 
-* 📌 **versions, decided once** — dependencies declared versionless ; a `<version>` fails the build at `validate`
+* 📌 **versions, decided once** — dependencies declared versionless ; maven-enforcer fails a `<version>` at `validate`
 * 🎨 **formatting law** — Spotless at `compile`, in both lanes ; `./format.sh` fixes it
+* 🔍 **source checks** — Checkstyle for what bytecode loses : FIXMEs, empty catches, `==` on strings, `if (done = true)`
 * 🛤️ **two test lanes** — unit & slice in seconds without Docker, `*IT` against real containers, JaCoCo over both
 
 **At runtime** — [`service-starter`](./service-starter) · [`mongo-starter`](./mongo-starter)
@@ -72,8 +73,8 @@ tests that prove them.
 
 **In the tests** — [`cucumber-starter`](./cucumber-starter) · [`conventions-starter`](./conventions-starter)
 
-* 🥒 **BDD without glue** — HTTP, JSON-path and MongoDB steps shipped ; services write features
-* 👮 **conventions as tests** — layering, naming, app name, health probe : the build fails, not the review
+* 🥒 **BDD without glue** — Cucumber steps for HTTP, JSON-path and MongoDB shipped ; services write features
+* 👮 **conventions as tests** — ArchUnit for layering & naming, runtime checks for app name & health : the build fails, not the review
 
 And [`sample-service`](./sample-service) consuming all of it — **its tests are the documentation**.
 
