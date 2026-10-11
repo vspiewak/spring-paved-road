@@ -108,7 +108,7 @@ docker run -d --name jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one
 
 `curl localhost:8080/orders/v1/orders/2`, then http://localhost:16686 :
 
-![Jaeger showing one trace for GET /orders/v1/orders/{orderId} : the HTTP span, OrderService#findByOrderId, then the MongoDB driver's find test.orders operation and its find command, tagged with collection, command and connection ids](../docs/images/jaeger-trace.png)
+![Jaeger showing one trace for GET /orders/v1/orders/{orderId} : the HTTP span, the orders.order.get span of the service, then the MongoDB driver's find test.orders operation and its find command, tagged with collection, command and connection ids](../docs/images/jaeger-trace.png)
 
 Proven by [`TracingConfigTest`](./src/test/java/com/vspiewak/pavedroad/tracing/TracingConfigTest.java)
 and end-to-end by [`TracingIT`](../sample-service/src/test/java/com/vspiewak/sample/platform/TracingIT.java),
