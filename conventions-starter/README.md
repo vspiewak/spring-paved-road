@@ -15,6 +15,9 @@ class ConventionsTest extends PlatformConventionsTest {}
 * **layered architecture** — `controllers → services → repositories`, nothing upstream, no shortcuts
 * `@RestController` classes live in `..controllers..` and end with `Controller`
 * no field injection, no `System.out`
+* **every public method of a `@Service` is `@Observed`**, and **every `@Observed` names its span** —
+  `name` and `contextualName`, in the `<domain>.<entity>.<verb>` form : a span named by the code
+  (`OrderService#findAll`) is one a rename breaks and no trace backend can group by
 * and the canonical BDD layout : `features/actuator.feature` + `features/service.feature` exist
 
 The subclass lives in a `conventions` package under the service's root test package — the scanned
@@ -34,6 +37,5 @@ class ConventionsIT extends PlatformConventionsIT {}
   `BuildProperties`, whose backing file only exists after the Maven build ran (IDE runs would fail)
 * `/actuator/health` answers `UP` — the deploy probe, proven before deploy
 
-The work version goes further — repositories as interfaces, logger conventions, `@Observed` span
-naming, a shared error contract, CI / deploy descriptor coherence — same pattern, grown to fleet
-size.
+The work version goes further — repositories as interfaces, logger conventions, a shared error
+contract, CI / deploy descriptor coherence — same pattern, grown to fleet size.
