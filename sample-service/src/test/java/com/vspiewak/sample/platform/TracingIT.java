@@ -51,7 +51,7 @@ class TracingIT {
 
     // then
     var server = awaitServerSpan("/orders/v1/orders");
-    var service = onlySpan(server, "OrderService#findAll");
+    var service = onlySpan(server, "orders.order.list");
     var mongo = childrenOf(service);
     assertThat(mongo)
         .isNotEmpty()

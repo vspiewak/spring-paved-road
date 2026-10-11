@@ -94,7 +94,7 @@ which prints each span to the console the moment it ends, no collector needed :
 ```text
 [f647ad56...-476a60f2...] LoggingSpanExporter : 'find' : f647ad56... CLIENT
 [f647ad56...-476a60f2...] LoggingSpanExporter : 'find test.orders' : f647ad56... CLIENT
-[f647ad56...-476a60f2...] LoggingSpanExporter : 'OrderService#findAll' : f647ad56... INTERNAL
+[f647ad56...-476a60f2...] LoggingSpanExporter : 'orders.order.list' : f647ad56... INTERNAL
 [                       ] LoggingSpanExporter : 'http get /orders/v1/orders' : f647ad56... SERVER
 ```
 

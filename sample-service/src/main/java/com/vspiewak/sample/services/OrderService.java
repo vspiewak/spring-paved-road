@@ -9,16 +9,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-@Observed
 @RequiredArgsConstructor
 public class OrderService {
 
   private final OrderRepository repository;
 
+  @Observed(name = "orders.order.list", contextualName = "orders.order.list")
   public List<Order> findAll() {
     return repository.findAll();
   }
 
+  @Observed(name = "orders.order.get", contextualName = "orders.order.get")
   public Optional<Order> findByOrderId(String orderId) {
     return repository.findByOrderId(orderId);
   }
