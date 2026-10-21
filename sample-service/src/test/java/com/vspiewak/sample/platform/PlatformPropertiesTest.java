@@ -14,6 +14,9 @@ import org.springframework.test.context.ActiveProfiles;
  * The platform property layering, from lowest to highest precedence :
  *
  * <p>platform-default.yaml &lt; application.yaml &lt; platform-override(-profile).yaml
+ *
+ * <p>A service value comes from a config file ({@code spring.config.additional-location}), never an
+ * inline test property : that one outranks every config file, so it would win whatever the ladder.
  */
 class PlatformPropertiesTest {
 
@@ -62,7 +65,9 @@ class PlatformPropertiesTest {
   }
 
   @Nested
-  @SpringBootTest(properties = "logging.level.org.mongodb.driver=DEBUG")
+  @SpringBootTest(
+      properties =
+          "spring.config.additional-location=classpath:/platform/service-over-log-levels.yaml")
   class ServiceOverLogLevels {
 
     @Test
@@ -73,7 +78,8 @@ class PlatformPropertiesTest {
   }
 
   @Nested
-  @SpringBootTest(properties = "spring.banner.location=classpath:my-own-banner.txt")
+  @SpringBootTest(
+      properties = "spring.config.additional-location=classpath:/platform/service-over-banner.yaml")
   class ServiceOverBanner {
 
     @Autowired private Environment environment;
@@ -87,7 +93,9 @@ class PlatformPropertiesTest {
   }
 
   @Nested
-  @SpringBootTest(properties = "management.endpoints.web.exposure.include=*")
+  @SpringBootTest(
+      properties =
+          "spring.config.additional-location=classpath:/platform/service-over-defaults.yaml")
   class ServiceOverDefaults {
 
     @Autowired private Environment environment;
