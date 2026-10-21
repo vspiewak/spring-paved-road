@@ -2,11 +2,14 @@ package com.vspiewak.pavedroad.env;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.LinkedHashMap;
 import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.env.DefaultPropertiesPropertySource;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.io.ClassPathResource;
 
 /**
@@ -36,7 +39,12 @@ public class SpringDefaultEnvironmentPostProcessor implements EnvironmentPostPro
     try {
       var propertySources = loader.load(name, resource);
       for (var ps : propertySources) {
-        env.getPropertySources().addLast(ps);
+        var defaults = new LinkedHashMap<String, Object>();
+        for (var key : ((EnumerablePropertySource<?>) ps).getPropertyNames()) {
+          defaults.put(key, ps.getProperty(key));
+        }
+        // Spring Boot keeps its default properties below the config files it loads afterwards
+        DefaultPropertiesPropertySource.addOrMerge(defaults, env.getPropertySources());
       }
     } catch (IOException e) {
       throw new UncheckedIOException(e);

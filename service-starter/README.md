@@ -22,7 +22,9 @@ Proven by [`PlatformPropertiesTest`](../sample-service/src/test/java/com/vspiewa
 including the fun one : `sample-service` *tries* to set `management.endpoint.env.show-values: always`,
 and the platform answers `never` 🔒 — and by the starter's own
 [`ServiceStarterIT`](./src/test/java/com/vspiewak/pavedroad/env/ServiceStarterIT.java),
-booting a bare context with zero service configuration.
+booting a bare context with zero service configuration, and
+[`SpringDefaultLifecycleTest`](./src/test/java/com/vspiewak/pavedroad/env/SpringDefaultLifecycleTest.java),
+booting one on a real `application.yaml`.
 
 ## ✈️ The HTTP flight recorder
 
