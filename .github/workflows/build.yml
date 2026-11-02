@@ -7,7 +7,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # not ubuntu-latest : its 7.0.0-azure kernel makes mongo:8.0 refuse to start (SERVER-131779, fixed in 8.0.37)
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
 
