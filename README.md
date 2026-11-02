@@ -107,10 +107,10 @@ goal rather than a phase, which Maven would then run on `parent` too. It comes u
 
 | Endpoint | What you get |
 |---|---|
-| `GET /orders/v1/orders` | every order — the seed seen in `src/test/resources/mongo/import/orders/` |
-| `GET /orders/v1/orders/{orderId}` | one order, or a `404` |
-| `GET /actuator/health` | the deploy probe — `UP` |
-| `GET /actuator/httpexchanges` | the flight recorder : the requests you just made |
+| `GET /orders/v1/orders` | every order — the seed seen in `src/test/resources/mongo/import/orders/` |
+| `GET /orders/v1/orders/{orderId}` | one order, or a `404` |
+| `GET /actuator/health` | the deploy probe — `UP` |
+| `GET /actuator/httpexchanges` | the flight recorder : the requests you just made |
 
 The last two are exposed by `service-starter`'s defaults — the service's own `application.yaml`
 never mentions them.
